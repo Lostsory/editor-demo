@@ -111,3 +111,18 @@ table {
     @apply bg-background text-foreground;
 	}
 }
+
+.blinking-cursor {
+  position: absolute;
+  width: 1px;
+  height: 1em;
+  background-color: black;
+  animation: blink 1s step-start infinite;
+  pointer-events: none;
+}
+
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
