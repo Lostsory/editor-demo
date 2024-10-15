@@ -1,10 +1,34 @@
-import React, { forwardRef, useEffect, useRef, useState } from 'react';
-import { Button } from "@/components/ui/button"
+import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
+import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
-import picDemo from '@/assets/images/demo.png';
+
+interface ElementNode{
+  type: 'Text' | 'View',
+  text?: string,
+  [x: string]: any,
+  children?: Array<ElementNode>
+}
 
 function Home() {
-  const [texts, setTexts] = useState<string[]>(['请输入', '请输入2', '请输入3']);
+  const [schema, setSchema] = useState<Array<ElementNode>>([
+    {
+      type: 'Text',
+      text: 'text1'
+    },
+    {
+      type: 'View',
+      children: [
+        {
+          type: 'Text',
+          text: 'text2'
+        },
+        {
+          type: 'Text',
+          text: 'text3'
+        },
+      ]
+    },
+  ])
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -28,33 +52,48 @@ function Home() {
     // }
     if (event.key === 'Enter') {
       event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
-      setTexts([...texts, '']);  // 添加新的空文本项目
     }
   };
   const handleInput = () => {
-    if (containerRef.current) {
-      const updatedTexts = Array.from(containerRef.current.children).map(
-        (child) => (child as HTMLElement).innerText
-      );
-      setTexts(updatedTexts);
-      console.log('Updated texts:', updatedTexts);
-    }
+    
   };
   const change = () => {
     console.log('change');
   }
+  const renderContent = (list: Array<ElementNode>): ReactNode => {
+    // const children: ReactNode = []
+    // return createElement(
+    //   Fragment,
+    //   null,
+    //   schema.map((v) => {
+    //     if (v.type === 'Text') {
+    //       return <Text>{}</Text>
+    //     }
+    //   })
+    // )
+
+    return <Fragment>
+      {list.map((v, i) => {
+        if (v.type === 'Text') {
+          return <Text key={i}>{v.text}</Text>
+        }
+        if (v.type === 'View') {
+          return <View key={i}>{v.children && renderContent(v.children)}</View>
+        }
+        return null
+      })}
+    </Fragment>
+  }
   return <div className='p-[100px] bg-[#f5f6f7]'>
     <div
-      className='bg-white min-h-[100vh] outline-none rounded-none'
+      className='bg-white p-5 min-h-[100vh] outline-none rounded-none'
       contentEditable
       suppressContentEditableWarning
       onKeyDown={handleKeyDown}
       onInput={handleInput}
       ref={containerRef}
     >
-      {texts.map((text, index) => (
-        <Text key={index} text={text} />
-      ))}
+      {renderContent(schema)}
     </div>
   </div>
 }
