@@ -34,28 +34,31 @@ function Home() {
   const handleKeyDown = (event: React.KeyboardEvent) => {
 
     // 检测删除键的按下
-    // if (event.key === 'Backspace' || event.key === 'Delete') {
-    //   const selection = window.getSelection();
-    //   if (selection && selection.rangeCount > 0) {
-    //     const range = selection.getRangeAt(0);
-    //     const startNode = range.startContainer; // 当前光标位置的节点
-    //     const startOffset = range.startOffset; // 光标在节点中的偏移量
+    if (event.key === 'Backspace' || event.key === 'Delete') {
 
-    //     console.log('startOffset', selection.anchorNode);
-
-    //     if (startNode.nodeType !== Node.TEXT_NODE) {
-    //       const prevNode = startNode.previousSibling;
-    //       console.log('prevNode', startNode, prevNode);
-    //     }
-    //     event.preventDefault()
-    //   }
-    // }
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const currentNode = range.startContainer;
+        let containerNode = currentNode.parentNode
+        if (containerNode?.nodeType !== Node.TEXT_NODE) {
+          if (containerNode instanceof HTMLElement) {
+            const dataAttributes = containerNode.dataset;
+            if (dataAttributes.base === 'caret') {
+              event.preventDefault()
+              containerNode = containerNode.previousSibling
+              console.log('containerNode', containerNode);
+            }
+          }
+        }
+      }
+    }
     if (event.key === 'Enter') {
-      event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
+      // event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
     }
   };
   const handleInput = () => {
-    
+
   };
   const change = () => {
     console.log('change');
@@ -72,19 +75,26 @@ function Home() {
     //   })
     // )
 
-    return <Fragment>
+    return <>
       {list.map((v, i) => {
         if (v.type === 'Text') {
-          return <Text key={i}>{v.text}</Text>
+          return <Fragment key={i}>
+            <Text>{v.text}</Text>
+          </Fragment>
         }
         if (v.type === 'View') {
-          return <View key={i}>{v.children && renderContent(v.children)}</View>
+          return <Fragment key={i}>
+            <View>{v.children && renderContent(v.children)}</View>
+          </Fragment>
         }
         return null
       })}
-    </Fragment>
+    </>
   }
   return <div className='p-[100px] bg-[#f5f6f7]'>
+    <div>
+      我是&#8203;标题
+    </div>
     <div
       className='bg-white p-5 min-h-[100vh] outline-none rounded-none'
       contentEditable
@@ -94,6 +104,13 @@ function Home() {
       ref={containerRef}
     >
       {renderContent(schema)}
+      <div
+        style={{minWidth: '1px', display: 'inline-block'}}
+        onClick={(e) => {
+          console.log('222', e);
+        }}
+        data-base="caret"
+      >&#8203;</div>
     </div>
   </div>
 }

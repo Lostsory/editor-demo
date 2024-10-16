@@ -6,7 +6,7 @@ const View: FC<{
 }> = ({
   children
 }) => {
-  return <Base style={{width: '200px'}}>
+  return <Base  style={{width: '200px', border: '1px solid red',}}>
     { children }
   </Base>
 }
