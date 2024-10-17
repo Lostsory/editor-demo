@@ -78,7 +78,6 @@ function Home() {
     
     // 检测删除键的按下
     if (event.key === 'Backspace' || event.key === 'Delete') {
-        const currentNode = range.startContainer;
       event.preventDefault()
       editor.current?.deleteText()
     }
