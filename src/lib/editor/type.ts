@@ -1,8 +1,9 @@
 export type NodeId = string | number
 
+export type Path = (string | number)[]
+
 export interface EditorChild{
-  id: NodeId,
-  parentId?: NodeId,
   type: 'Text' | 'View',
   text?: string,
+  children?: EditorChild[]
 }

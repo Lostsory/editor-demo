@@ -1,15 +1,15 @@
-import { Children, FC, ReactNode } from 'react';
+import { Children, FC, forwardRef, ReactNode } from 'react';
 import Base from './Base';
 
-const Text: FC<{
-  children: ReactNode,
-}> = ({
+const Text = forwardRef<HTMLParagraphElement, {
+  children: ReactNode
+}>(({
   children,
   ...reset
-}) => {
-  return <Base {...reset} tagName='p'>
+}, ref) => {
+  return <Base {...reset} ref={ref} tagName='p'>
     { children }
   </Base>
-}
+})
 
 export default Text

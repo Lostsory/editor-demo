@@ -36,6 +36,10 @@ class Schema<K, V, C extends keyof V>{
       node.data = newValue;
     }
   }
+
+  getAll() {
+
+  }
 }
 
 class Node<T> {

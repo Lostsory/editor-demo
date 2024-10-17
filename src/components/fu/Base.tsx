@@ -1,12 +1,13 @@
-import { createElement, FC, HTMLAttributes, ReactNode, useRef } from "react";
+import { createElement, FC, forwardRef, HTMLAttributes, ReactNode, useRef } from "react";
 
 interface BaseProps extends HTMLAttributes<HTMLElement> {
   tagName?: string,
   children: ReactNode,
 }
 
-const Base: FC<BaseProps> = (props) => {
-  const elemRef = useRef<HTMLDivElement>(null);
+
+
+const Base = forwardRef<HTMLElement, BaseProps>((props, ref) => {
   const {tagName = 'div', children, style, onMouseOver, onMouseOut, ...reset} = props
 
   const handleMouseOver = (e: any) => {
@@ -27,14 +28,14 @@ const Base: FC<BaseProps> = (props) => {
   return createElement(
     tagName || 'div',
     {
-      ref: elemRef,
-      style: {...style, display: 'inline-block'},
+      ref,
+      style: {...style},
       ...reset,
       onMouseOver: handleMouseOver,
       onMouseOut: handleMouseOut,
       'data-base': 'base'
     },
     children);
-}
+})
 
 export default Base
