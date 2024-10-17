@@ -4,9 +4,10 @@ import Base from './Base';
 const View: FC<{
   children: ReactNode
 }> = ({
-  children
+  children,
+  ...reset
 }) => {
-  return <Base  style={{width: '200px', border: '1px solid red',}}>
+  return <Base {...reset} style={{width: '200px', border: '1px solid red',}}>
     { children }
   </Base>
 }

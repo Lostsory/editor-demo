@@ -1,4 +1,6 @@
 import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
+import { fromJS } from 'immutable';
+
 import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
 
@@ -10,6 +12,7 @@ interface ElementNode{
 }
 
 function Home() {
+  const [isComposing, setIsComposing] = useState<boolean>(false)
   const [schema, setSchema] = useState<Array<ElementNode>>([
     {
       type: 'Text',
@@ -29,6 +32,7 @@ function Home() {
       ]
     },
   ])
+
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -57,13 +61,7 @@ function Home() {
       // event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
     }
   };
-  const handleInput = () => {
-
-  };
-  const change = () => {
-    console.log('change');
-  }
-  const renderContent = (list: Array<ElementNode>): ReactNode => {
+  const renderContent = (list: Array<ElementNode>, p: Array<number> = []): ReactNode => {
     // const children: ReactNode = []
     // return createElement(
     //   Fragment,
@@ -77,20 +75,50 @@ function Home() {
 
     return <>
       {list.map((v, i) => {
+        const path = [...p, i]
         if (v.type === 'Text') {
           return <Fragment key={i}>
-            <Text>{v.text}</Text>
+            <Text data-fuID={path}>{v.text}</Text>
           </Fragment>
         }
         if (v.type === 'View') {
           return <Fragment key={i}>
-            <View>{v.children && renderContent(v.children)}</View>
+            <View data-path={path}>{v.children && renderContent(v.children, path)}</View>
           </Fragment>
         }
         return null
       })}
     </>
   }
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
+  };
+  const handleBeforeInput = (event) => {
+    if (isComposing) {
+      return
+    }
+    event.preventDefault();
+    const section = window.getSelection()
+    if (section && section.rangeCount > -1) {
+      console.log(section.anchorNode);
+      const parent = section.anchorNode?.parentNode
+      const path = parent?.dataset.path.split(',')
+      const newPath = path.reduce((acc, current, index) => {
+        acc.push(current);
+        if (index < path.length - 1) {
+          acc.push('children'); // 只在不是最后一个元素后插入
+        }
+        return acc;
+      }, []);
+      const data = fromJS(schema);
+      const newData = data.updateIn([...newPath, 'text'], val => val + event.data);
+      setSchema(newData.toJS())
+    }
+  };
   return <div className='p-[100px] bg-[#f5f6f7]'>
     <div>
       我是&#8203;标题
@@ -100,19 +128,22 @@ function Home() {
       contentEditable
       suppressContentEditableWarning
       onKeyDown={handleKeyDown}
-      onInput={handleInput}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+      onBeforeInput={handleBeforeInput}
       ref={containerRef}
     >
       {renderContent(schema)}
       <div
+        className='outline-none rounded-none overflow-hidden'
         style={{minWidth: '1px', display: 'inline-block'}}
-        onClick={(e) => {
-          console.log('222', e);
-        }}
         data-base="caret"
       >&#8203;</div>
+
+      <h1>我是标题</h1>
     </div>
   </div>
 }
+
 
 export default Home;
