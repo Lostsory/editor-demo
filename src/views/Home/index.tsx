@@ -1,26 +1,29 @@
 import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
-import { createEditor, Editor } from '@/lib/editor';
-import { EditorChild, Path } from '@/lib/editor/type';
+import { createEditor, Editor, NodeType } from '@/lib/editor';
+import { EditorChild, Path } from '@/lib/editor';
 
 import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
 
-
 function Home() {
-  
+
   const [list, setList] = useState<EditorChild[]>([
     {
       type: 'Text',
-      text: 'text'
+      text: 'text',
+      id: '1',
     },
     {
       type: 'View',
+      id: '2',
       children: [
         {
+          id: '2-1',
           type: 'Text',
           text: 'text1'
         },
         {
+          id: '2-2',
           type: 'Text',
           text: 'text2'
         },
@@ -39,9 +42,9 @@ function Home() {
   useEffect(() => {
     editor.current = createEditor({
       data: list,
-      onChange: (type) => {
-        setList(editor.current?.data.toJS() as EditorChild[]) 
-      }
+      onChange({ type, data }) {
+        setList(data)
+      },
     })
     document.addEventListener('selectionchange', handleSelectionchange)
     return () => {
@@ -50,7 +53,7 @@ function Home() {
   }, [])
 
   useEffect(() => {
-    
+
     if (editor.current?.range && selection.current) {
       const {focus, anchor} = editor.current.range
       selection.current.removeAllRanges()
@@ -60,7 +63,7 @@ function Home() {
       selection.current.addRange(range)
       editor.current.setRange(range)
     }
-    
+
   }, [list])
 
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -75,7 +78,7 @@ function Home() {
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    
+
     // 检测删除键的按下
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault()
@@ -93,7 +96,7 @@ function Home() {
           return <Fragment key={i}>
             <Text
               ref={(ref: any) => editorChildrefs.current.set(path.join(','), ref)}
-              data-path={path}
+              data-fu-id={v.id}
             >{v.text}</Text>
           </Fragment>
         }
@@ -101,7 +104,7 @@ function Home() {
           return <Fragment key={i}>
             <View
               ref={(ref: any) => editorChildrefs.current.set(path.join(','), ref)}
-              data-path={path}
+              data-fu-id={v.id}
             >
               {v.children && renderContent(v.children, path)}
             </View>

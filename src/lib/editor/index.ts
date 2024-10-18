@@ -1,32 +1,38 @@
-import { List } from 'immutable';
-import { EditorChild, Path } from './type';
+import { NodeList } from './node';
+import { EditorChild } from './type';
 
 enum OperationType{
   INSERT_TEXT,
   DELETE_TEXT
 }
 
+interface EditorChange {
+  type: OperationType,
+  data: EditorChild[],
+}
+
 interface EditorParams {
   data?: EditorChild[],
-  onChange: (type: OperationType) => void
+  onChange: (params: EditorChange) => void,
 }
 
 interface EditorRange{
   collapsed: boolean,
   focus: {
-    path: Path,
+    id: string,
     offset: number,
     node: Node
   },
   anchor: {
-    path: Path,
+    id: string,
     offset: number,
     node: Node
   }
 }
 
 export interface Editor{
-  data: List<EditorChild>,
+  data: EditorChild[],
+  nodeList: NodeList,
   range: EditorRange | null,
   insertText: (text: string) => void,
   deleteText: () => void,
@@ -36,73 +42,66 @@ export interface Editor{
 export const createEditor = (params: EditorParams): Editor => {
   const { data = [], onChange } = params
   const editor: Editor = {
-    data: List(data),
+    data,
+    nodeList: new NodeList(data),
     range: null,
     insertText(text) {
       if (editor.range) {
-        const { focus: {path, offset} } = editor.range;
-        const updatePath = path.reduce<(string| number)[]>((acc, current, index) => {
-          acc.push(current);
-          if (index < path.length - 1) {
-            acc.push('children');
-          }
-          return acc;
-        }, [])
-
-        updatePath.push('text')
+        const { focus: {id, offset} } = editor.range;
 
         editor.range.anchor.offset += text.length
         editor.range.focus.offset += text.length
 
-        editor.data = editor.data.updateIn(updatePath, (val: any) => {
-          if (offset === val.length) {
-            return val + text
-          }
-          return val.substring(0, offset) + text + val.substring(offset);
+        const node = editor.nodeList.getNodeById(id)
+
+        const oldText = node?.data.text || ''
+
+        const newText = oldText.substring(0, offset) + text + oldText.substring(offset)
+
+        editor.nodeList.updateNode(id, {
+          text: newText
         })
 
-        onChange(OperationType.INSERT_TEXT)
+        onChange({
+          type: OperationType.INSERT_TEXT,
+          data: [...editor.data]
+        })
+        console.log('[...editor.data]', [...editor.data], editor.nodeList);
       }
     },
     deleteText() {
       if (editor.range) {
-        const { focus: {path, offset} } = editor.range;
-        const updatePath = path.reduce<(string| number)[]>((acc, current, index) => {
-          acc.push(current);
-          if (index < path.length - 1) {
-            acc.push('children');
-          }
-          return acc;
-        }, [])
-
-        updatePath.push('text')
+        const { focus: {id, offset} } = editor.range;
 
         editor.range.anchor.offset--
         editor.range.focus.offset--
 
-        if (editor.range.anchor.offset === 0) {
-          editor.data = editor.data.deleteIn(updatePath)
-        } else {
-          editor.data = editor.data.updateIn(updatePath, (val: any) => {
-            return val.slice(0, -1);
-          })  
-        }
-        onChange(OperationType.DELETE_TEXT)
+        const node = editor.nodeList.getNodeById(id)
+
+        const oldText = node?.data.text || ''
+
+        editor.nodeList.updateNode(id, {
+          text: oldText.slice(0, offset - 1) + oldText.slice(offset)
+        })
+        onChange({
+          type: OperationType.DELETE_TEXT,
+          data: [...editor.data]
+        })
       }
     },
+
     setRange(range) {
-      console.log(range);
       if (range) {
         const {startContainer, endContainer, startOffset, endOffset} = range
         editor.range = {
           collapsed: range.collapsed,
           focus: {
-            path: (startContainer.parentNode as HTMLElement).dataset.path?.split(',') as Path,
+            id: (startContainer.parentNode as HTMLElement).dataset.fuId as string,
             offset: startOffset,
             node: startContainer,
           },
           anchor: {
-            path: (endContainer.parentNode as HTMLElement).dataset.path?.split(',') as Path,
+            id: (endContainer.parentNode as HTMLElement).dataset.fuId as string,
             offset: endOffset,
             node: endContainer,
           }
@@ -110,7 +109,7 @@ export const createEditor = (params: EditorParams): Editor => {
       } else {
         editor.range = null
       }
-      
+
     },
     // getPath(dom) {
 
@@ -124,3 +123,6 @@ export const createEditor = (params: EditorParams): Editor => {
   }
   return editor
 }
+
+
+export * from './type'
