@@ -1,5 +1,5 @@
 import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
-import { createEditor, Editor, NodeType } from '@/lib/editor';
+import Editor from '@/lib/editor';
 import { EditorChild, Path } from '@/lib/editor';
 
 import View from '@/components/fu/View';
@@ -31,21 +31,15 @@ function Home() {
     },
   ])
 
-  const editorChildrefs = useRef<Map<string, any>>(new Map())
-
-  const editor = useRef<Editor>()
-
-  const selection = useRef(window.getSelection())
-
-  const [isComposing, setIsComposing] = useState<boolean>(false)
+  const editor = useRef<Editor>(new Editor({
+    onChange({ type, data }) {
+      setList(data)
+    },
+  }))
 
   useEffect(() => {
-    editor.current = createEditor({
-      data: list,
-      onChange({ type, data }) {
-        setList(data)
-      },
-    })
+    editor.current.setDate(list)
+    
     document.addEventListener('selectionchange', handleSelectionchange)
     return () => {
       document.removeEventListener('selectionchange', handleSelectionchange)
@@ -53,41 +47,31 @@ function Home() {
   }, [])
 
   useEffect(() => {
-
-    if (editor.current?.range && selection.current) {
-      const {focus, anchor} = editor.current.range
-      selection.current.removeAllRanges()
-      const range = document.createRange()
-      range.setEnd(focus.node, focus.offset)
-      range.setStart(anchor.node, anchor.offset)
-      selection.current.addRange(range)
-      editor.current.setRange(range)
-    }
-
+    editor.current.updateRangeToWindow()
   }, [list])
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleSelectionchange = () => {
-    const selection = document.getSelection();
-    if (selection?.rangeCount) {
-      editor.current?.setRange(selection.getRangeAt(0))
-    } else {
-      editor.current?.setRange(null)
-    }
+    editor.current.updateRangeToEditor()
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (editor.current.isComposing) {
+      // 如果正在进行组合输入，阻止空格键或其他键的默认行为
+      event.preventDefault()
+    }
 
     // 检测删除键的按下
     if (event.key === 'Backspace' || event.key === 'Delete') {
       event.preventDefault()
-      editor.current?.deleteText()
+      editor.current.deleteText()
     }
     if (event.key === 'Enter') {
       // event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
     }
   };
+
   const renderContent = (list: EditorChild[], p: Path = []): ReactNode => {
     return <>
       {list.map((v, i) => {
@@ -95,7 +79,6 @@ function Home() {
         if (v.type === 'Text') {
           return <Fragment key={i}>
             <Text
-              ref={(ref: any) => editorChildrefs.current.set(path.join(','), ref)}
               data-fu-id={v.id}
             >{v.text}</Text>
           </Fragment>
@@ -103,7 +86,6 @@ function Home() {
         if (v.type === 'View') {
           return <Fragment key={i}>
             <View
-              ref={(ref: any) => editorChildrefs.current.set(path.join(','), ref)}
               data-fu-id={v.id}
             >
               {v.children && renderContent(v.children, path)}
@@ -114,23 +96,30 @@ function Home() {
       })}
     </>
   }
+
   const handleCompositionStart = () => {
-    setIsComposing(true);
+    console.log('handleCompositionStart');
+    // setIsComposing(true);
+    editor.current.setIsComposing(true)
   };
 
-  const handleCompositionEnd = () => {
-    setIsComposing(false);
+  const handleCompositionEnd = (event) => {
+    console.log('handleCompositionEnd');
+    // setIsComposing(false);
+    editor.current.setIsComposing(false)
+    editor.current.insertText(event.data)
   };
   const handleBeforeInput = (event) => {
-    if (isComposing) {
+    console.log('handleBeforeInput');
+    if (editor.current.isComposing) {
       return
     }
-    editor.current?.insertText(event.data)
+    editor.current.insertText(event.data)
     event.preventDefault();
   };
   return <div className='p-[100px] bg-[#f5f6f7]'>
     <div
-      className='bg-white p-5 min-h-[100vh] outline-none rounded-none'
+      className='bg-white p-5 min-h-[100vh] outline-none rounded-none whitespace-pre-wrap'
       contentEditable
       suppressContentEditableWarning
       onKeyDown={handleKeyDown}
@@ -148,6 +137,8 @@ function Home() {
 
       {/* <h1>我是标题</h1> */}
     </div>
+    <Fragment key="111">我是一个人</Fragment>
+    <div className='w-[200px] h-[200px] bg-[red]'></div>
   </div>
 }
 

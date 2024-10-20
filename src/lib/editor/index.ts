@@ -1,5 +1,8 @@
 import { NodeList } from './node';
+import Range from './range';
 import { EditorChild } from './type';
+
+const ZERO_WIDTH_SPACE = '\u200B';
 
 enum OperationType{
   INSERT_TEXT,
@@ -16,112 +19,182 @@ interface EditorParams {
   onChange: (params: EditorChange) => void,
 }
 
-interface EditorRange{
-  collapsed: boolean,
-  focus: {
-    id: string,
-    offset: number,
-    node: Node
-  },
-  anchor: {
-    id: string,
-    offset: number,
-    node: Node
+let callbacks: Function[] = [];
+let pending: boolean = false;
+
+const flushCallback = () => {
+  pending = false;
+  callbacks.forEach(fn => fn());
+  callbacks = []
+};
+
+const timerFunc = () => {
+  Promise.resolve().then(() => {
+    flushCallback()
+  })
+}
+
+const nextTick = (fn: Function) => {
+  callbacks.push(fn)
+  if (!pending) {
+    pending = true
+    timerFunc()
   }
 }
 
-export interface Editor{
-  data: EditorChild[],
-  nodeList: NodeList,
-  range: EditorRange | null,
-  insertText: (text: string) => void,
-  deleteText: () => void,
-  setRange: (range: Range | null) => void,
-}
+export default class Editor{
+  data: EditorChild[]
+  nodeList: NodeList
+  range: Range | null
+  isComposing: boolean
+  onChange: (type: OperationType) => void
 
-export const createEditor = (params: EditorParams): Editor => {
-  const { data = [], onChange } = params
-  const editor: Editor = {
-    data,
-    nodeList: new NodeList(data),
-    range: null,
-    insertText(text) {
-      if (editor.range) {
-        const { focus: {id, offset} } = editor.range;
+  constructor(params: EditorParams) {
+    const {data = [], onChange} = params
+    this.data = data
+    this.nodeList = new NodeList(data)
+    this.range = null
+    this.isComposing = false
 
-        editor.range.anchor.offset += text.length
-        editor.range.focus.offset += text.length
+    this.onChange = (type: OperationType) => {
+      onChange({
+        type,
+        data: [...this.data]
+      })
+    }
+  }
 
-        const node = editor.nodeList.getNodeById(id)
+  setDate(data: EditorChild[]) {
+    this.data = data
+    this.nodeList = new NodeList(data)
+  }
+  
+  setIsComposing(bool: boolean) {
+    this.isComposing = bool
+  }
 
-        const oldText = node?.data.text || ''
+  insertText(text: string) {
 
-        const newText = oldText.substring(0, offset) + text + oldText.substring(offset)
+    if (!this.range) return
 
-        editor.nodeList.updateNode(id, {
-          text: newText
-        })
+    if (this.range.isSingleNode()) {
 
-        onChange({
-          type: OperationType.INSERT_TEXT,
-          data: [...editor.data]
-        })
-        console.log('[...editor.data]', [...editor.data], editor.nodeList);
+      const { focus, anchor } = this.range;
+
+      const node = this.nodeList.getNodeById(focus.id)
+    
+      const oldText = node?.data.text || ''
+
+      const isForward = this.range.isForward()
+
+      const start = isForward ? focus.offset : anchor.offset
+      const end = isForward ? anchor.offset : focus.offset
+
+      const newText = oldText.substring(0, start) + text + oldText.substring(end)
+  
+      this.nodeList.updateNode(focus.id, {
+        text: newText
+      })
+
+      this.range.updateAnchor((val) => ({...val, offset: start + text.length}))
+      this.range.updateFocus((val) => ({...val, offset: start + text.length}))
+
+      this.onChange(OperationType.INSERT_TEXT)
+    } else {
+      // TODO 跨节点插入文字
+    }
+  }
+
+  deleteText() {
+    if (!this.range) return
+
+    if (this.range.isSingleNode()) {
+        
+      const { focus, anchor } = this.range;
+
+      const node = this.nodeList.getNodeById(focus.id)
+    
+      const oldText = node?.data.text || ''
+      
+      if (oldText === ZERO_WIDTH_SPACE && node) {
+        // const prvesibling = this.nodeList.getPrvesibling(node)
+        // this.nodeList.deleteNode(focus.id)
+        // this.range = new Range()
+        return
       }
-    },
-    deleteText() {
-      if (editor.range) {
-        const { focus: {id, offset} } = editor.range;
 
-        editor.range.anchor.offset--
-        editor.range.focus.offset--
+      const start = this.range.isForward() ? focus.offset : anchor.offset
+      const end = this.range.isForward() ? anchor.offset : focus.offset
 
-        const node = editor.nodeList.getNodeById(id)
-
-        const oldText = node?.data.text || ''
-
-        editor.nodeList.updateNode(id, {
-          text: oldText.slice(0, offset - 1) + oldText.slice(offset)
-        })
-        onChange({
-          type: OperationType.DELETE_TEXT,
-          data: [...editor.data]
-        })
-      }
-    },
-
-    setRange(range) {
-      if (range) {
-        const {startContainer, endContainer, startOffset, endOffset} = range
-        editor.range = {
-          collapsed: range.collapsed,
-          focus: {
-            id: (startContainer.parentNode as HTMLElement).dataset.fuId as string,
-            offset: startOffset,
-            node: startContainer,
-          },
-          anchor: {
-            id: (endContainer.parentNode as HTMLElement).dataset.fuId as string,
-            offset: endOffset,
-            node: endContainer,
-          }
-        }
+      let newText = ''
+      let newOffset = 0
+      if (this.range.isCollapsed()) {
+        newText = oldText.substring(0, start -1) + oldText.substring(end)
+        newOffset = start - 1
       } else {
-        editor.range = null
+        newText = oldText.substring(0, start) + oldText.substring(end)
+        newOffset = start
       }
 
-    },
-    // getPath(dom) {
+      this.nodeList.updateNode(focus.id, {
+        text: newText.length === 0 ? ZERO_WIDTH_SPACE : newText
+      })
 
-    // },
-    // insertNode(node: EditorChild) {
+      // if (newText.length === 0) {
+      //   this.
+      // }
 
-    // },
-    // deleteText() {
+      this.range.updateAnchor((val) => ({...val, offset: newOffset}))
+      this.range.updateFocus((val) => ({...val, offset: newOffset}))
 
-    // }
+      this.onChange(OperationType.DELETE_TEXT)
+    } else {
+      // TODO 跨节点删除文字
+    }
   }
-  return editor
+
+  updateRangeToWindow() {
+    if (!this.range) return 
+    const {focus, anchor} = this.range
+
+    const selection = window.getSelection() as Selection
+    const range = document.createRange()
+    range.setEnd(focus.node, focus.offset)
+    range.setStart(anchor.node, anchor.offset)
+
+    selection.removeAllRanges()
+    selection.addRange(range)
+  }
+
+  updateRangeToEditor() {
+    const sel  = window.getSelection()
+    if (this.isComposing) return
+    if (sel?.rangeCount) {
+      // const range = sel.getRangeAt(0)
+      const {anchorOffset, focusOffset, anchorNode, focusNode} = sel
+      if (anchorNode && focusNode) {
+        this.range = new Range({
+          anchor: {
+            id: (anchorNode.parentNode as HTMLElement).dataset.fuId as string,
+            offset: anchorOffset,
+            node: anchorNode
+          },
+          focus: {
+            id: (focusNode.parentNode as HTMLElement).dataset.fuId as string,
+            offset: focusOffset,
+            node: focusNode
+          },
+        })
+        console.log('current range', this.range);
+      } else {
+        this.range = null
+      }
+      
+    } else {
+      this.range = null
+    }
+  }
+
 }
 
 

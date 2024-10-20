@@ -19,6 +19,7 @@ export class Node<T> {
     this.data = data
     this.node = null
     this.child = null
+    this.prevSibling = null
     this.sibling = null
     this.return = null
   }
@@ -64,8 +65,14 @@ export class NodeList{
     return this.map.get(id)
   }
 
-  getParentNode(node: Node<EditorChild>) {
-    return node.return
+  getPrvesibling(node: Node<EditorChild>): Node<EditorChild> | null {
+    const parent = node.return as Node<EditorChild>
+    let current = parent.child;
+    while (current && current.sibling !== node) {
+      current = current.sibling;
+    }
+
+    return current || null
   }
 
   isText(node: Node<EditorChild>) {
@@ -104,6 +111,8 @@ export class NodeList{
       console.error(`组件id: ${id}不存在`);
     }
   }
+
+  
 
 }
 
