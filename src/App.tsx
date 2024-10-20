@@ -4,6 +4,7 @@ import Loading from '@/components/Loading'
 
 // 懒加载组件
 const Home = lazy(() => import("@/views/Home"));
+const Home2 = lazy(() => import("@/views/Home/index2"));
 
 function App() {
 
@@ -11,7 +12,8 @@ function App() {
     <Router>
       <Suspense fallback={<Loading/>}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/slate" element={<Home />} />
+          <Route path="/own" element={<Home2 />} />
         </Routes>
       </Suspense>
     </Router>
