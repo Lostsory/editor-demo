@@ -4,7 +4,7 @@ interface ViewProps{
   align?: 'center'
 }
 
-const View: FC<ViewProps> = ({ attributes, children }) => {
+const View: FC<ViewProps> = ({ attributes, children, element }) => {
   return (
     <div
       {...attributes}

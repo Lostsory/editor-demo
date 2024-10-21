@@ -1,143 +1,176 @@
-import React, { useMemo } from 'react';
-import {
-  createEditor,
-  Descendant,
-  Transforms,
-  Editor,
-  Element as SlateElement,
-  Range,
-  Point
-} from 'slate';
-import {
-  Slate,
-  Editable,
-  withReact,
-  RenderLeafProps,
-  RenderElementProps
-} from 'slate-react';
+// Import React dependencies.
+import React, { useCallback, useState } from 'react'
+// Import the Slate editor factory.
+import { createEditor, Editor, Element, Node, Transforms } from 'slate'
 
-import View from './View';
+// Import the Slate components and React plugin.
+import { Slate, Editable, withReact } from 'slate-react'
 
+import { Button } from '@/components/ui/button';
 
-interface CustomElement<ExtraFields = unknown> {
-  type: 'div' | 'img' | 'link',
-  props?: ExtraFields,
-  children: CustomElement<ExtraFields>[];
+// Define a React component renderer for our code blocks.
+const CodeElement = props => {
+  return (
+    <pre {...props.attributes}>
+      <code>{props.children}</code>
+    </pre>
+  )
 }
 
-const InlineChromiumBugfix = () => (
-  <span
-    contentEditable={false}
-    className='font-0'
+const DefaultElement = props => {
+  return <p {...props.attributes}>{props.children}</p>
+}
+
+const initialValue = [
+  {
+    type: 'paragraph',
+    children: [{ text: 'A line of text in a paragraph.' }],
+  },
+  {
+    type: 'paragraph',
+    children: [{ text: 'A line of text in a paragraph.2' }],
+  },
+]
+
+const CustomEditor = {
+  isBoldMarkActive(editor) {
+    const marks = Editor.marks(editor)
+    return marks ? marks.bold === true : false
+  },
+
+  isCodeBlockActive(editor) {
+    const [match] = Editor.nodes(editor, {
+      match: n => n.type === 'code',
+    })
+    console.log('match', match);
+
+    return !!match
+  },
+
+  toggleBoldMark(editor) {
+    const isActive = CustomEditor.isBoldMarkActive(editor)
+    if (isActive) {
+      Editor.removeMark(editor, 'bold')
+    } else {
+      Editor.addMark(editor, 'bold', true)
+    }
+  },
+
+  toggleCodeBlock(editor) {
+    const isActive = CustomEditor.isCodeBlockActive(editor)
+    Transforms.setNodes(
+      editor,
+      { type: isActive ? 'paragraph' : 'code' },
+      { match: n => Element.isElement(n) && Editor.isBlock(editor, n) }
+    )
+  },
+}
+
+
+
+const App = () => {
+  const [editor] = useState(() => withReact(createEditor()))
+
+  const renderElement = props => {
+    switch (props.element.type) {
+      case 'code':
+        return <CodeElement {...props} />
+      default:
+        return <DefaultElement {...props} />
+    }
+  }
+
+  // Define a React component to render leaves with bold text.
+  const renderLeaf = props => {
+    return (
+      <span
+        {...props.attributes}
+        style={{ fontWeight: props.leaf.bold ? 'bold' : 'normal' }}
+      >
+        {props.children}
+      </span>
+    )
+  }
+
+  const logSomething = () => {
+    console.log('Node.get(value, path)', Node.get('type', [1]));
+  }
+
+  return <Slate
+    editor={editor}
+    initialValue={initialValue}
+    onChange={value => {
+      console.log('val', value);
+      const isAstChange = editor.operations.some(
+        op => 'set_selection' !== op.type
+      )
+      if (isAstChange) {
+        // Save the value to Local Storage.
+        const content = JSON.stringify(value)
+        localStorage.setItem('content', content)
+      }
+    }}
   >
-    {String.fromCodePoint(160) /* Non-breaking space */}
-  </span>
-)
-
-const EditableButtonComponent = ({ attributes, children }) => {
-  return (
-    <span
-      {...attributes}
-      onClick={ev => ev.preventDefault()}
-      // Margin is necessary to clearly show the cursor adjacent to the button
-      style={{
-        margin: '0 0.1em',
-        backgroundColor: '#efefef',
-        padding: '2px 6px',
-        border: '1px solid #767676',
-        borderRadius: '2px',
-        fontSize: '0.9em,'
-      }}
-    >
-      <InlineChromiumBugfix />
-      {children}
-      <InlineChromiumBugfix />
-    </span>
-  )
-}
-
-const Text = (props: RenderLeafProps) => {
-  const { attributes, children } = props
-  return (
-    <span
-      // The following is a workaround for a Chromium bug where,
-      // if you have an inline at the end of a block,
-      // clicking the end of a block puts the cursor inside the inline
-      // instead of inside the final {text: ''} node
-      // https://github.com/ianstormtaylor/slate/issues/4704#issuecomment-1006696364
-      style={{paddingLeft: '0.1px'}}
-      {...attributes}
-    >
-      {children}
-    </span>
-  )
-}
-
-const Element = (props: RenderElementProps) => {
-  const { attributes, children, element } = props as
-  switch (element.type) {
-    case 'block':
-      return <View {...element.p} />
-    default:
-      return <p {...attributes}>{children}</p>
-  }
-}
-
-const Home = () => {
-
-  const withFu = editor => {
-    const { deleteBackward, deleteForward, insertBreak, isInline  } = editor
-
-    return editor
-  }
-
-  const editor = useMemo(() => withFu(withReact(createEditor())), []);
-
-  const initialValue: CustomElement[] = [
-    {
-      type: 'div',
-      children: [
-        { text: '我是文本节点1' },
-        {
-          type: 'paragraph',
-          children: [
-            { text: '我是文本节点2' },
-          ],
-        },
-      ],
-    },
-  ]
-
-  const handlerChange = (val: any) => {
-    console.log(val);
-  }
-
-  return (
-    <div className='p-[100px] bg-[#f5f6f7]'>
-      <div className='bg-white min-h-[100vh]'>
-        <Slate
-          editor={editor}
-          initialValue={initialValue}
-          onChange={(val) => console.log(val)}
-        >
-          <Editable
-            className='outline-none rounded-none'
-            placeholder="Type something"
-            renderPlaceholder={({ children, attributes }) => (
-              <div {...attributes}>
-               {children}
-              </div>
-            )}
-            renderElement={props => <Element {...props} />}
-            renderLeaf={props => <Text {...props} />}
-            onChange={handlerChange}
-          >
-          </Editable>
-        </Slate>
-      </div>
-
+    <div>
+      <Button
+        onClick={event => {
+          event.preventDefault()
+          CustomEditor.toggleBoldMark(editor)
+        }}
+        className='mr-[10px]'
+      >
+        Bold
+      </Button>
+      <Button
+        onClick={event => {
+          event.preventDefault()
+          CustomEditor.toggleCodeBlock(editor)
+        }}
+        className='mr-[10px]'
+      >
+        Code Block
+      </Button>
+      <Button
+        onClick={logSomething}
+        className='mr-[10px]'
+      >
+        Bold
+      </Button>
     </div>
-  );
-};
+    <Editable
+      renderLeaf={renderLeaf}
+      renderElement={renderElement}
+      onKeyDown={event => {
+        if (!event.ctrlKey) {
+          return
+        }
 
-export default Home;
+        // Replace the `onKeyDown` logic with our new commands.
+        switch (event.key) {
+          case '`': {
+            event.preventDefault()
+            CustomEditor.toggleCodeBlock(editor)
+            // const [match] = Editor.nodes(editor, {
+            //   match: n => n.type === 'code',
+            // })
+            // // Toggle the block type depending on whether there's already a match.
+            // Transforms.setNodes(
+            //   editor,
+            //   { type: match ? 'paragraph' : 'code' },
+            //   { match: n => Element.isElement(n) && Editor.isBlock(editor, n) }
+            // )
+            break
+          }
+
+          case 'b': {
+            event.preventDefault()
+            CustomEditor.toggleBoldMark(editor)
+            break
+          }
+        }
+      }}
+    />
+  </Slate>
+}
+
+export default App
