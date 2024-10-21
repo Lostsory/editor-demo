@@ -1,197 +1,146 @@
-import React, { useMemo } from 'react';
-import { createEditor, Descendant, Transforms, Editor, Element as SlateElement, Range, Point } from 'slate';
-import { Slate, Editable, withReact, ReactEditor } from 'slate-react';
+import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
+import Editor from '@/lib/editor';
+import { EditorChild, Path } from '@/lib/editor';
 
+import View from '@/components/fu/View';
+import Text from '@/components/fu/Text';
 
+function Home() {
 
-const InlineChromiumBugfix = () => (
-  <span
-    contentEditable={false}
-    className='font-0'
-  >
-    {String.fromCodePoint(160) /* Non-breaking space */}
-  </span>
-)
+  const [list, setList] = useState<EditorChild[]>([
+    {
+      type: 'Text',
+      text: 'text',
+      id: '1',
+    },
+    {
+      type: 'View',
+      id: '2',
+      children: [
+        {
+          id: '2-1',
+          type: 'Text',
+          text: 'text1'
+        },
+        {
+          id: '2-2',
+          type: 'Text',
+          text: 'text2'
+        },
+      ]
+    },
+  ])
 
-const EditableButtonComponent = ({ attributes, children }) => {
-  return (
-    /*
-      Note that this is not a true button, but a span with button-like CSS.
-      True buttons are display:inline-block, but Chrome and Safari
-      have a bad bug with display:inline-block inside contenteditable:
-      - https://bugs.webkit.org/show_bug.cgi?id=105898
-      - https://bugs.chromium.org/p/chromium/issues/detail?id=1088403
-      Worse, one cannot override the display property: https://github.com/w3c/csswg-drafts/issues/3226
-      The only current workaround is to emulate the appearance of a display:inline button using CSS.
-    */
-    <span
-      {...attributes}
-      onClick={ev => ev.preventDefault()}
-      // Margin is necessary to clearly show the cursor adjacent to the button
-      style={{
-        margin: '0 0.1em',
-        backgroundColor: '#efefef',
-        padding: '2px 6px',
-        border: '1px solid #767676',
-        borderRadius: '2px',
-        fontSize: '0.9em,'
-      }}
-    >
-      <InlineChromiumBugfix />
-      {children}
-      <InlineChromiumBugfix />
-    </span>
-  )
-}
+  const editor = useRef<Editor>(new Editor({
+    onChange({ type, data }) {
+      setList(data)
+    },
+  }))
 
-const Text = props => {
-  const { attributes, children, leaf } = props
-  return (
-    <span
-      // The following is a workaround for a Chromium bug where,
-      // if you have an inline at the end of a block,
-      // clicking the end of a block puts the cursor inside the inline
-      // instead of inside the final {text: ''} node
-      // https://github.com/ianstormtaylor/slate/issues/4704#issuecomment-1006696364
-      style={{paddingLeft: '0.1px'}}
-      {...attributes}
-    >
-      {children}
-    </span>
-  )
-}
+  useEffect(() => {
+    editor.current.setDate(list)
+    
+    document.addEventListener('selectionchange', handleSelectionchange)
+    return () => {
+      document.removeEventListener('selectionchange', handleSelectionchange)
+    }
+  }, [])
 
-const Element = props => {
-  const { attributes, children, element } = props
-  switch (element.type) {
-    // case 'button':
-    //   return <span className='inline rounded-[5px] bg-[#000] text-[#fff] pl-[10px] pr-[10px]' {...attributes}>
-    //     <InlineChromiumBugfix/>
-    //     {children}
-    //     <InlineChromiumBugfix/>
-    //   </span>
-    case 'button':
-      return <EditableButtonComponent {...props} />
-    default:
-      return <p {...attributes}>{children}</p>
+  useEffect(() => {
+    editor.current.updateRangeToWindow()
+  }, [list])
+
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
+  const handleSelectionchange = () => {
+    editor.current.updateRangeToEditor()
   }
-}
 
-const Home = () => {
-  
-
-  const withTables = editor => {
-    const { deleteBackward, deleteForward, insertBreak, isInline  } = editor
-  
-    // editor.insertBreak = () => {
-    //   const { selection } = editor
-  
-    //   if (selection) {
-    //     const [table] = Editor.nodes(editor, {
-    //       match: n =>
-    //         !Editor.isEditor(n) &&
-    //         SlateElement.isElement(n) &&
-    //         n.type === 'button',
-    //     })
-
-
-  
-    //     console.log('table', table);
-
-    //     if (table) {
-    //       Transforms.move(editor, { unit: 'block' });
-    //       return
-    //     }
-    //   }
-  
-    //   insertBreak()
-    // }
-
-    editor.isInline = element => {
-      console.log('element', element);
-      return ['link', 'button', 'badge'].includes(element.type) || isInline(element)
+  const handleKeyDown = (event: React.KeyboardEvent) => {
+    if (editor.current.isComposing) {
+      // 如果正在进行组合输入，阻止空格键或其他键的默认行为
+      event.preventDefault()
     }
 
-    return editor
-  }
-
-  const editor = useMemo(() => withTables(withReact(createEditor())), []);
-
-  // const initialValue: Descendant[] = [
-    // {
-    //   type: 'paragraph',
-    //   children: [
-    //     { text: 'This is editable plain text, just like a <textarea>!' },
-    //     {
-    //       type: 'button',
-    //       children: [{ text: 'editable button' }],
-    //     },
-    //     { text: 'This is editable plain text, just like a <textarea>!', bold: true },
-    //   ],
-    // },
-    // {
-    //   type: 'button',
-    //   children: [
-    //     { text: '按钮' },
-    //   ],
-    // },
-    // {
-    //   type: 'paragraph',
-    //   children: [
-    //     { text: 'This is editable plain text, just like a <textarea>!' },
-    //     { text: 'This is editable plain text, just like a <textarea>!', bold: true },
-    //   ],
-    // },
-  // ];
-  const initialValue: Descendant[] = [
-    {
-      type: 'paragraph',
-      children: [{ text: '' }],
-    },
-  ]
-
-  const renderPlaceholder = () => {
-    return <span className="custom-placeholder">请输入一些文本...</span>;
+    // 检测删除键的按下
+    if (event.key === 'Backspace' || event.key === 'Delete') {
+      event.preventDefault()
+      editor.current.deleteText()
+    }
+    if (event.key === 'Enter') {
+      // event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
+    }
   };
 
-  const a = ({ attributes, children }) => <div {...attributes} className="custom-placeholder">{ children }</div>
-
-  const handlerChange = (val) => {
-    console.log(val);
+  const renderContent = (list: EditorChild[], p: Path = []): ReactNode => {
+    return <>
+      {list.map((v, i) => {
+        const path = [...p, i]
+        if (v.type === 'Text') {
+          return <Fragment key={i}>
+            <Text
+              data-fu-id={v.id}
+            >{v.text}</Text>
+          </Fragment>
+        }
+        if (v.type === 'View') {
+          return <Fragment key={i}>
+            <View
+              data-fu-id={v.id}
+            >
+              {v.children && renderContent(v.children, path)}
+            </View>
+          </Fragment>
+        }
+        return null
+      })}
+    </>
   }
 
-  return (
-    <div className='p-[100px] bg-[#f5f6f7]'>
-      <div className='bg-white min-h-[100vh]'>
-        <Slate
-          editor={editor}
-          initialValue={initialValue}
-          onChange={(val) => console.log(val)}
-        >
-          <Editable
-            className=' outline-none rounded-none'
-            // placeholder='请输入一些文本...'
-            // renderPlaceholder={renderPlaceholder}
-            placeholder="Type something"
-        renderPlaceholder={({ children, attributes }) => (
-          <div {...attributes}>
-            <p>{children}</p>
-            <pre>
-              Use the renderPlaceholder prop to customize rendering of the
-              placeholder
-            </pre>
-          </div>
-        )}
-            renderElement={props => <Element {...props} />}
-            renderLeaf={props => <Text {...props} />}
-            onChange={handlerChange}
-          >
-          </Editable>
-        </Slate>
-      </div>
-      
+  const handleCompositionStart = () => {
+    console.log('handleCompositionStart');
+    // setIsComposing(true);
+    editor.current.setIsComposing(true)
+  };
+
+  const handleCompositionEnd = (event) => {
+    console.log('handleCompositionEnd');
+    // setIsComposing(false);
+    editor.current.setIsComposing(false)
+    editor.current.insertText(event.data)
+  };
+  const handleBeforeInput = (event) => {
+    console.log('handleBeforeInput');
+    if (editor.current.isComposing) {
+      return
+    }
+    editor.current.insertText(event.data)
+    event.preventDefault();
+  };
+  return <div className='p-[100px] bg-[#f5f6f7]'>
+    <div
+      className='bg-white p-5 min-h-[100vh] outline-none rounded-none whitespace-pre-wrap'
+      contentEditable
+      suppressContentEditableWarning
+      onKeyDown={handleKeyDown}
+      onCompositionStart={handleCompositionStart}
+      onCompositionEnd={handleCompositionEnd}
+      onBeforeInput={handleBeforeInput}
+      ref={containerRef}
+    >
+      {renderContent(list)}
+      {/* <div
+        className='outline-none rounded-none overflow-hidden'
+        style={{minWidth: '1px', display: 'inline-block'}}
+        data-base="caret"
+      >&#8203;</div> */}
+
+      {/* <h1>我是标题</h1> */}
     </div>
-  );
-};
+    <Fragment key="111">我是一个人</Fragment>
+    <div className='w-[200px] h-[200px] bg-[red]'></div>
+  </div>
+}
+
 
 export default Home;
