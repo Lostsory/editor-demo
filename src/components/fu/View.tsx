@@ -1,7 +1,7 @@
 import { Children, FC, forwardRef, ReactNode } from 'react';
 import Base from './Base';
 
-const View = forwardRef<HTMLParagraphElement, {
+const View = forwardRef<any, {
   children: ReactNode
 }>(({
   children,

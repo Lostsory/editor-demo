@@ -13,8 +13,7 @@ export type NodeType = 'root' | 'Text' | 'View'
 export interface EditorChild{
   id: string,
   type: NodeType,
-  text?: string,
-  children?: EditorChild[]
+  children: EditorChild[] | string
 }
 
 

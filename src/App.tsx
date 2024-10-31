@@ -4,6 +4,7 @@ import Loading from '@/components/Loading'
 
 // 懒加载组件
 const Home = lazy(() => import("@/views/Home"));
+const Table = lazy(() => import("@/views/Slate/table.tsx"));
 const Slate = lazy(() => import("@/views/Slate"));
 
 function App() {

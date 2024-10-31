@@ -1,17 +1,18 @@
 import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
-import Editor from '@/lib/editor';
+import Editor, { NodeId } from '@/lib/editor';
 import { EditorChild, Path } from '@/lib/editor';
 
 import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
+
 
 function Home() {
 
   const [list, setList] = useState<EditorChild[]>([
     {
       type: 'Text',
-      text: 'text',
       id: '1',
+      children: 'text',
     },
     {
       type: 'View',
@@ -20,16 +21,18 @@ function Home() {
         {
           id: '2-1',
           type: 'Text',
-          text: 'text1'
+          children: 'text1',
         },
         {
           id: '2-2',
           type: 'Text',
-          text: 'text2'
+          children: 'text2',
         },
       ]
     },
   ])
+
+  const nodeMap = useRef<Map<NodeId, React.RefObject<HTMLElement>>>(new Map())
 
   const editor = useRef<Editor>(new Editor({
     onChange({ type, data }) {
@@ -47,13 +50,72 @@ function Home() {
   }, [])
 
   useEffect(() => {
-    editor.current.updateRangeToWindow()
+    if (!editor.current.range) return
+
+    const {focus, anchor} = editor.current.range
+
+    const editorFocusNode = editor.current.getNodeById(focus.id)
+    const editorAnchorNode = editor.current.getNodeById(focus.id)
+
+    let focusNode = nodeMap.current.get(focus.id)?.current as Node
+    let anchorNode = nodeMap.current.get(focus.id)?.current as Node
+    
+    if (!editorFocusNode || !editorAnchorNode) return
+    
+    if (!anchorNode || !focusNode) return
+
+    if (editorAnchorNode.data.type === 'Text') {
+      anchorNode = anchorNode.firstChild as Node
+    }
+
+    if (editorFocusNode.data.type === 'Text') {
+      focusNode = focusNode.firstChild as Node
+    }
+
+    if (editorFocusNode && editorAnchorNode && focusNode && anchorNode) {
+      const selection = window.getSelection() as Selection
+      const range = document.createRange()
+      range.setEnd(focusNode, focus.offset)
+      range.setStart(focusNode, anchor.offset)
+  
+      selection.removeAllRanges()
+      selection.addRange(range)
+    }
+
+    
   }, [list])
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
   const handleSelectionchange = () => {
-    editor.current.updateRangeToEditor()
+
+    const sel  = window.getSelection()
+
+    if (editor.current.isComposing) return
+
+    if (sel?.rangeCount) {
+
+      const {anchorOffset, focusOffset, anchorNode, focusNode} = sel
+
+      if (anchorNode && focusNode) {
+
+        editor.current.setRange({
+          anchor: {
+            id: (anchorNode.parentNode as HTMLElement).dataset.fuId as string,
+            offset: anchorOffset,
+          },
+          focus: {
+            id: (focusNode.parentNode as HTMLElement).dataset.fuId as string,
+            offset: focusOffset,
+          }
+        })
+        
+      } else {
+        editor.current.setRange(null)
+      }
+    } else {
+      editor.current.setRange(null)
+    }
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
@@ -76,19 +138,26 @@ function Home() {
     return <>
       {list.map((v, i) => {
         const path = [...p, i]
+
+        if (!nodeMap.current.has(v.id)) {
+          nodeMap.current.set(v.id, React.createRef<HTMLElement>())
+        }
+
         if (v.type === 'Text') {
           return <Fragment key={i}>
             <Text
+              ref={nodeMap.current.get(v.id)}
               data-fu-id={v.id}
-            >{v.text}</Text>
+            >{v.children as string}</Text>
           </Fragment>
         }
         if (v.type === 'View') {
           return <Fragment key={i}>
             <View
+              ref={nodeMap.current.get(v.id)}
               data-fu-id={v.id}
             >
-              {v.children && renderContent(v.children, path)}
+              {v.children && renderContent(v.children as EditorChild[], path)}
             </View>
           </Fragment>
         }

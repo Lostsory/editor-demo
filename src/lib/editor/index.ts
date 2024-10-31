@@ -1,12 +1,13 @@
-import { NodeList } from './node';
-import Range from './range';
-import { EditorChild } from './type';
+import { Node, NodeList } from './node';
+import Range, { Rangeslide } from './range';
+import { EditorChild, NodeId } from './type';
 
 const ZERO_WIDTH_SPACE = '\u200B';
 
 enum OperationType{
   INSERT_TEXT,
-  DELETE_TEXT
+  DELETE_TEXT,
+  DELETE_NODE
 }
 
 interface EditorChange {
@@ -43,7 +44,6 @@ const nextTick = (fn: Function) => {
 }
 
 export default class Editor{
-  data: EditorChild[]
   nodeList: NodeList
   range: Range | null
   isComposing: boolean
@@ -51,7 +51,6 @@ export default class Editor{
 
   constructor(params: EditorParams) {
     const {data = [], onChange} = params
-    this.data = data
     this.nodeList = new NodeList(data)
     this.range = null
     this.isComposing = false
@@ -59,13 +58,12 @@ export default class Editor{
     this.onChange = (type: OperationType) => {
       onChange({
         type,
-        data: [...this.data]
+        data: [...this.nodeList.data] as EditorChild[]
       })
     }
   }
 
   setDate(data: EditorChild[]) {
-    this.data = data
     this.nodeList = new NodeList(data)
   }
   
@@ -83,7 +81,7 @@ export default class Editor{
 
       const node = this.nodeList.getNodeById(focus.id)
     
-      const oldText = node?.data.text || ''
+      const oldText = (node?.data.children || '') as string
 
       const isForward = this.range.isForward()
 
@@ -92,8 +90,8 @@ export default class Editor{
 
       const newText = oldText.substring(0, start) + text + oldText.substring(end)
   
-      this.nodeList.updateNode(focus.id, {
-        text: newText
+      this.nodeList.updateNodeById(focus.id, {
+        children: newText
       })
 
       this.range.updateAnchor((val) => ({...val, offset: start + text.length}))
@@ -114,17 +112,19 @@ export default class Editor{
 
       const node = this.nodeList.getNodeById(focus.id)
     
-      const oldText = node?.data.text || ''
+      const oldText = (node?.data.children || '') as string
       
+      // 如果是占位字符，则删除当前节点
       if (oldText === ZERO_WIDTH_SPACE && node) {
-        // const prvesibling = this.nodeList.getPrvesibling(node)
-        // this.nodeList.deleteNode(focus.id)
-        // this.range = new Range()
+        this.deleteNode(focus.id)
         return
       }
+      
 
       const start = this.range.isForward() ? focus.offset : anchor.offset
       const end = this.range.isForward() ? anchor.offset : focus.offset
+
+      if (start === end && start === 0) return
 
       let newText = ''
       let newOffset = 0
@@ -136,8 +136,8 @@ export default class Editor{
         newOffset = start
       }
 
-      this.nodeList.updateNode(focus.id, {
-        text: newText.length === 0 ? ZERO_WIDTH_SPACE : newText
+      this.nodeList.updateNodeById(focus.id, {
+        children: newText.length === 0 ? ZERO_WIDTH_SPACE : newText
       })
 
       // if (newText.length === 0) {
@@ -153,43 +153,61 @@ export default class Editor{
     }
   }
 
-  updateRangeToWindow() {
-    if (!this.range) return 
-    const {focus, anchor} = this.range
-
-    const selection = window.getSelection() as Selection
-    const range = document.createRange()
-    range.setEnd(focus.node, focus.offset)
-    range.setStart(anchor.node, anchor.offset)
-
-    selection.removeAllRanges()
-    selection.addRange(range)
+  transfrom({
+    node,
+    offset = 0
+  }: {
+    node: Node<EditorChild>,
+    offset?: number
+  }) {
+    this.range = new Range({
+      focus: { id: node.data.id, offset },
+      anchor: { id: node.data.id, offset },
+    })
   }
 
-  updateRangeToEditor() {
-    const sel  = window.getSelection()
-    if (this.isComposing) return
-    if (sel?.rangeCount) {
-      // const range = sel.getRangeAt(0)
-      const {anchorOffset, focusOffset, anchorNode, focusNode} = sel
-      if (anchorNode && focusNode) {
-        this.range = new Range({
-          anchor: {
-            id: (anchorNode.parentNode as HTMLElement).dataset.fuId as string,
-            offset: anchorOffset,
-            node: anchorNode
-          },
-          focus: {
-            id: (focusNode.parentNode as HTMLElement).dataset.fuId as string,
-            offset: focusOffset,
-            node: focusNode
-          },
-        })
-        console.log('current range', this.range);
-      } else {
-        this.range = null
+  getNodeById(id: NodeId) {
+    return this.nodeList.getNodeById(id)
+  }
+
+  deleteNode(id: NodeId) {
+
+    const node = this.nodeList.getNodeById(id)
+    
+    if (!node) return
+
+
+    const prvesibling = this.nodeList.getPrvesibling(node)
+    const sibling = node.sibling
+    const parent = node.return
+    
+    this.nodeList.deleteNode(node)
+    
+    if (prvesibling) {
+      this.transfrom({
+        node: prvesibling,
+        offset: prvesibling.data.children.length
+      })
+      this.onChange(OperationType.DELETE_NODE)
+    } else if (sibling) {
+      this.transfrom({
+        node: sibling,
+        offset: 0
+      })
+      this.onChange(OperationType.DELETE_NODE)
+    } else {
+      if (parent) {
+        this.deleteNode(parent.data.id)
       }
-      
+    }
+  }
+
+  setRange(range: {
+    focus: Rangeslide,
+    anchor: Rangeslide
+  } | null) {
+    if (range) {
+      this.range = new Range(range)
     } else {
       this.range = null
     }

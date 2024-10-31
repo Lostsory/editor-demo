@@ -1,21 +1,8 @@
-interface EditorRange{
-  collapsed: boolean,
-  focus: {
-    id: string,
-    offset: number,
-    node: Node
-  },
-  anchor: {
-    id: string,
-    offset: number,
-    node: Node
-  }
-}
+import { NodeId } from "./type"
 
-interface Rangeslide{
-  readonly id: string,
+export interface Rangeslide{
+  id: NodeId,
   offset: number,
-  readonly node: Node
 }
 
 
@@ -67,7 +54,6 @@ export default class Range{
   updateFocus(params: Rangeslide | ((val: Rangeslide) => Rangeslide)) {
     if (typeof params === 'function') {
       Object.assign(this.focus, params(this.focus))
-      console.log('focus', this.focus);
     } else {
       this.focus = params
     }
@@ -76,7 +62,6 @@ export default class Range{
   updateAnchor(params: Rangeslide | ((val: Rangeslide) => Rangeslide)) {
     if (typeof params === 'function') {
       Object.assign(this.anchor, params(this.anchor))
-      console.log('anchor', this.anchor);
     } else {
       this.anchor = params
     }

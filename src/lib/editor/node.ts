@@ -1,13 +1,10 @@
-import { ReactNode } from "react";
-import { EditorChild } from "./type";
+import { EditorChild, NodeId } from "./type";
 import { nanoid } from 'nanoid';
 
 export class Node<T> {
 
   // 组件的数据
   data: T;
-  // 组件实例
-  node: ReactNode;
   // 子节点
   child: Node<T> | null;
   // 兄弟节点
@@ -17,9 +14,7 @@ export class Node<T> {
 
   constructor(data: T) {
     this.data = data
-    this.node = null
     this.child = null
-    this.prevSibling = null
     this.sibling = null
     this.return = null
   }
@@ -27,7 +22,7 @@ export class Node<T> {
 
 export class NodeList{
 
-  map: Map<string, Node<EditorChild>>
+  map: Map<NodeId, Node<EditorChild>>
   rootNode: Node<EditorChild>
 
   constructor(list: EditorChild[]) {
@@ -37,15 +32,20 @@ export class NodeList{
       type: 'root',
       children: list
     }
-    this.rootNode = this.generateNodeTree(data, new Node(null))
+
+    this.rootNode = this.generateNodeTree(data)
   }
 
-  generateNodeTree(data: EditorChild, returnNode: Node<EditorChild | null>) {
+  get data() {
+    return this.rootNode.data.children
+  }
+
+  generateNodeTree(data: EditorChild, returnNode?: Node<EditorChild>) {
     const node = new Node(data);
-    node.return = returnNode as Node<EditorChild>;
+    node.return = returnNode || null;
 
     this.map.set(data.id, node)
-    if (data.children && data.children.length > 0) {
+    if (Array.isArray(data.children) && data.children.length > 0) {
       let previousNode = null;
       for (const child of data.children) {
         const childNode = this.generateNodeTree(child, node);
@@ -61,17 +61,16 @@ export class NodeList{
     return node;
   }
 
-  getNodeById(id: string) {
+  getNodeById(id: NodeId) {
     return this.map.get(id)
   }
 
   getPrvesibling(node: Node<EditorChild>): Node<EditorChild> | null {
-    const parent = node.return as Node<EditorChild>
+    const parent = node.return || this.rootNode
     let current = parent.child;
     while (current && current.sibling !== node) {
       current = current.sibling;
     }
-
     return current || null
   }
 
@@ -79,7 +78,7 @@ export class NodeList{
     return node.data.type === 'Text'
   }
 
-  updateNode(id: string, data: Partial<EditorChild>) {
+  updateNodeById(id: NodeId, data: Partial<EditorChild>) {
     const node = this.getNodeById(id)
     if (node) {
       Object.assign(node.data, data)
@@ -88,32 +87,22 @@ export class NodeList{
     }
   }
 
-  deleteNode(id: string) {
-    const node = this.getNodeById(id)
-    if (node) {
-      const parent = node.return as Node<EditorChild>
-      if (parent.child === node) {
-        parent.child = node.sibling;
-      } else {
-        let current = parent.child;
-        while (current && current.sibling !== node) {
-          current = current.sibling;
-        }
-
-        if (current) {
-          current.sibling = node.sibling;
-        }
-      }
-      node.child = null;
-      node.sibling = null;
-      node.return = null;
+  deleteNode(node: Node<EditorChild>) {
+    const parent = node.return || this.rootNode
+    if (parent.child === node) {
+      parent.child = node.sibling;
     } else {
-      console.error(`组件id: ${id}不存在`);
+      const prvesibling = this.getPrvesibling(node)
+      if (prvesibling) {
+        prvesibling.sibling = node.sibling
+      }
     }
+    node.child = null;
+    node.sibling = null;
+    node.return = null;
+    parent.data.children = (parent.data.children as EditorChild[]).filter(v => v.id !== node.data.id)
+    this.map.delete(node.data.id)
   }
-
-  
-
 }
 
 
