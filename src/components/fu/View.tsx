@@ -7,7 +7,7 @@ const View = forwardRef<any, {
   children,
   ...reset
 }, ref) => {
-  return <Base {...reset} ref={ref} style={{width: '200px', border: '1px solid red',}}>
+  return <Base {...reset} ref={ref} style={{width: '200px', border: '1px solid red', display: 'inline-block'}}>
     { children }
   </Base>
 })

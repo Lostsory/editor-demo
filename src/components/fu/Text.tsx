@@ -1,5 +1,17 @@
-import { Children, FC, forwardRef, ReactNode } from 'react';
+import { Children, FC, forwardRef, ReactNode, Fragment } from 'react';
 import Base from './Base';
+
+// const Text = forwardRef<any, {
+//   children: ReactNode
+// }>(({
+//   children,
+//   ...reset
+// }, ref) => {
+//   return <Base {...reset} style={{display: 'inline-block', paddingLeft: '.1px'}} ref={ref} tagName='p'>
+
+//     { children }
+//   </Base>
+// })
 
 const Text = forwardRef<any, {
   children: ReactNode
@@ -7,9 +19,10 @@ const Text = forwardRef<any, {
   children,
   ...reset
 }, ref) => {
-  return <Base {...reset} ref={ref} tagName='p'>
+  return <Fragment  ref={ref} tagName='p'>
+
     { children }
-  </Base>
+  </Fragment>
 })
 
 export default Text

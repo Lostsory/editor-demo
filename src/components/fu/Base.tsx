@@ -5,7 +5,14 @@ interface BaseProps extends HTMLAttributes<HTMLElement> {
   children: ReactNode,
 }
 
-
+// const InlineChromiumBugfix = () => (
+//   <span
+//     contentEditable={false}
+//     style={{'fontSize': 0}}
+//   >
+//     {String.fromCodePoint(160) /* Non-breaking space */}
+//   </span>
+// )
 
 const Base = forwardRef<HTMLElement, BaseProps>((props, ref) => {
   const {tagName = 'div', children, style, onMouseOver, onMouseOut, ...reset} = props
@@ -35,7 +42,10 @@ const Base = forwardRef<HTMLElement, BaseProps>((props, ref) => {
       onMouseOut: handleMouseOut,
       'data-base': 'base'
     },
-    children);
+    // String.fromCodePoint(160),
+    children,
+    // createElement(InlineChromiumBugfix),
+  );
 })
 
 export default Base

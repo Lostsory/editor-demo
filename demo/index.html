@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <style>
+      body { font-size: 32px; }
+      p { padding: 1em; }
+      code { background: lightgrey; padding: 5px; }
+    </style>
+  </head>
+  <body>
+    <p id="editable" contenteditable="true">abc<code>def</code>ghi</p>
+  </body>
+  <script>
+    const editableEl = document.querySelector("#editable");
+    setInterval(() => {
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.setStart(editableEl.childNodes[1], 0);
+      range.setEnd(editableEl.childNodes[1], 0);
+      selection.removeAllRanges();
+      selection.addRange(range);
+      console.log(window.getSelection());
+    }, 1000);
+  </script>
+</html>

@@ -1,10 +1,10 @@
 import React, { createElement, forwardRef, Fragment, HTMLAttributes, ReactNode, useEffect, useRef, useState } from 'react';
 import Editor, { NodeId } from '@/lib/editor';
+import hotkeys from '@/lib/editor/utils/hotkeys';
 import { EditorChild, Path } from '@/lib/editor';
 
 import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
-
 
 function Home() {
 
@@ -30,6 +30,11 @@ function Home() {
         },
       ]
     },
+    {
+      id: '3',
+      type: 'Text',
+      children: 'text3',
+    },
   ])
 
   const nodeMap = useRef<Map<NodeId, React.RefObject<HTMLElement>>>(new Map())
@@ -37,19 +42,20 @@ function Home() {
   const editor = useRef<Editor>(new Editor({
     onChange({ type, data }) {
       setList(data)
+      updateRange()
     },
   }))
 
   useEffect(() => {
     editor.current.setDate(list)
-    
+
     document.addEventListener('selectionchange', handleSelectionchange)
     return () => {
       document.removeEventListener('selectionchange', handleSelectionchange)
     }
   }, [])
 
-  useEffect(() => {
+  const updateRange = () => {
     if (!editor.current.range) return
 
     const {focus, anchor} = editor.current.range
@@ -59,9 +65,9 @@ function Home() {
 
     let focusNode = nodeMap.current.get(focus.id)?.current as Node
     let anchorNode = nodeMap.current.get(focus.id)?.current as Node
-    
+
     if (!editorFocusNode || !editorAnchorNode) return
-    
+
     if (!anchorNode || !focusNode) return
 
     if (editorAnchorNode.data.type === 'Text') {
@@ -77,13 +83,11 @@ function Home() {
       const range = document.createRange()
       range.setEnd(focusNode, focus.offset)
       range.setStart(focusNode, anchor.offset)
-  
+
       selection.removeAllRanges()
       selection.addRange(range)
     }
-
-    
-  }, [list])
+  }
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
@@ -109,7 +113,7 @@ function Home() {
             offset: focusOffset,
           }
         })
-        
+
       } else {
         editor.current.setRange(null)
       }
@@ -119,18 +123,34 @@ function Home() {
   }
 
   const handleKeyDown = (event: React.KeyboardEvent) => {
-    if (editor.current.isComposing) {
-      // 如果正在进行组合输入，阻止空格键或其他键的默认行为
+
+    if (hotkeys.isDeleteBackward(event)) {
       event.preventDefault()
+      console.log('isDeleteBackward');
+      editor.current.deleteText()
     }
 
     // 检测删除键的按下
-    if (event.key === 'Backspace' || event.key === 'Delete') {
+    if (hotkeys.isDeleteForward(event)) {
       event.preventDefault()
-      editor.current.deleteText()
+      console.log('isDeleteForward');
     }
-    if (event.key === 'Enter') {
-      // event.preventDefault();  // 防止在 contentEditable 中默认的换行操作
+
+    if (hotkeys.isMoveForward(event)) {
+      console.log('isMoveForward');
+      editor.current.moveCaret(false)
+      event.preventDefault()
+    }
+
+    if (hotkeys.isMoveBackward(event)) {
+      console.log('isMoveBackward');
+      editor.current.moveCaret(true)
+      event.preventDefault()
+    }
+
+    if (hotkeys.isEnter(event)) {
+      console.log('isEnter');
+      event.preventDefault();
     }
   };
 
@@ -206,8 +226,6 @@ function Home() {
 
       {/* <h1>我是标题</h1> */}
     </div>
-    <Fragment key="111">我是一个人</Fragment>
-    <div className='w-[200px] h-[200px] bg-[red]'></div>
   </div>
 }
 
