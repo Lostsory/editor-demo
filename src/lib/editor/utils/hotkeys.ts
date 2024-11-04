@@ -21,6 +21,7 @@ const HOTKEYS = {
   insertSoftBreak: 'shift+enter',
   endter: 'enter',
   undo: 'mod+z',
+  selectAll: 'mod+a',
 }
 
 const APPLE_HOTKEYS = {
@@ -95,4 +96,5 @@ export default {
   isEnter: create('endter'),
   isTransposeCharacter: create('transposeCharacter'),
   isUndo: create('undo'),
+  isSelectAll: create('selectAll'),
 }
