@@ -31,9 +31,20 @@ function Home() {
       ]
     },
     {
+      type: 'View',
       id: '3',
+      children: [
+        {
+          id: '3-1',
+          type: 'Text',
+          children: 'text3',
+        }
+      ]
+    },
+    {
+      id: '4',
       type: 'Text',
-      children: 'text3',
+      children: 'text4',
     },
   ])
 
@@ -42,7 +53,6 @@ function Home() {
   const editor = useRef<Editor>(new Editor({
     onChange({ type, data }) {
       setList(data)
-      updateRange()
     },
   }))
 
@@ -54,6 +64,10 @@ function Home() {
       document.removeEventListener('selectionchange', handleSelectionchange)
     }
   }, [])
+
+  useEffect(() => {
+    updateRange()
+  }, [list])
 
   const updateRange = () => {
     if (!editor.current.range) return
@@ -71,11 +85,15 @@ function Home() {
     if (!anchorNode || !focusNode) return
 
     if (editorAnchorNode.data.type === 'Text') {
-      anchorNode = anchorNode.firstChild as Node
+      anchorNode = anchorNode.childNodes[1] as Node
     }
 
     if (editorFocusNode.data.type === 'Text') {
-      focusNode = focusNode.firstChild as Node
+      focusNode = focusNode.childNodes[1] as Node
+    }
+
+    if (editorAnchorNode.data.type === 'View') {
+      anchorNode = anchorNode.childNodes[1] as Node
     }
 
     if (editorFocusNode && editorAnchorNode && focusNode && anchorNode) {
@@ -137,13 +155,11 @@ function Home() {
     }
 
     if (hotkeys.isMoveForward(event)) {
-      console.log('isMoveForward');
       editor.current.moveCaret(false)
       event.preventDefault()
     }
 
     if (hotkeys.isMoveBackward(event)) {
-      console.log('isMoveBackward');
       editor.current.moveCaret(true)
       event.preventDefault()
     }

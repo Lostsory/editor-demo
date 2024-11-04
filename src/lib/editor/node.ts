@@ -20,10 +20,12 @@ export class Node<T> {
   }
 }
 
+export type FuNode = Node<EditorChild>
+
 export class NodeList{
 
-  map: Map<NodeId, Node<EditorChild>>
-  rootNode: Node<EditorChild>
+  map: Map<NodeId, FuNode>
+  rootNode: FuNode
 
   constructor(list: EditorChild[]) {
     this.map = new Map()
@@ -40,7 +42,7 @@ export class NodeList{
     return this.rootNode.data.children
   }
 
-  generateNodeTree(data: EditorChild, returnNode?: Node<EditorChild>) {
+  generateNodeTree(data: EditorChild, returnNode?: FuNode) {
     const node = new Node(data);
     node.return = returnNode || null;
 
@@ -52,7 +54,7 @@ export class NodeList{
         if (!node.child) {
           node.child = childNode;
         } else {
-          (previousNode as Node<EditorChild>).sibling = childNode;
+          (previousNode as FuNode).sibling = childNode;
         }
         previousNode = childNode;
       }
@@ -65,17 +67,21 @@ export class NodeList{
     return this.map.get(id)
   }
 
-  getPrvesibling(node: Node<EditorChild>): Node<EditorChild> | null {
+  lastChild(node: FuNode) {
+    let ans = node
+    while(ans.sibling) {
+      ans = ans.sibling
+    }
+    return ans
+  }
+
+  getPrvesibling(node: FuNode): FuNode | null {
     const parent = node.return || this.rootNode
     let current = parent.child;
     while (current && current.sibling !== node) {
       current = current.sibling;
     }
     return current || null
-  }
-
-  isText(node: Node<EditorChild>) {
-    return node.data.type === 'Text'
   }
 
   updateNodeById(id: NodeId, data: Partial<EditorChild>) {
@@ -87,7 +93,7 @@ export class NodeList{
     }
   }
 
-  deleteNode(node: Node<EditorChild>) {
+  deleteNode(node: FuNode) {
     const parent = node.return || this.rootNode
     if (parent.child === node) {
       parent.child = node.sibling;

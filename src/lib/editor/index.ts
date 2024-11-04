@@ -1,4 +1,4 @@
-import { Node, NodeList } from './node';
+import { FuNode, Node, NodeList } from './node';
 import Range, { Rangeslide } from './range';
 import { EditorChild, NodeId } from './type';
 
@@ -8,6 +8,9 @@ enum OperationType{
   INSERT_TEXT,
   DELETE_TEXT,
   DELETE_NODE,
+  /**
+   * 光标移动
+   */
   MOVE_CARET,
 }
 
@@ -95,8 +98,8 @@ export default class Editor{
         children: newText
       })
 
-      this.range.updateAnchor((val) => ({...val, offset: start + text.length}))
-      this.range.updateFocus((val) => ({...val, offset: start + text.length}))
+      this.range.updateAnchor((val) => ({offset: start + text.length}))
+      this.range.updateFocus((val) => ({offset: start + text.length}))
 
       this.onChange(OperationType.INSERT_TEXT)
     } else {
@@ -115,12 +118,10 @@ export default class Editor{
 
       const oldText = (node?.data.children || '') as string
 
-      // 如果是占位字符，则删除当前节点
-      if (oldText === ZERO_WIDTH_SPACE && node) {
+      if (oldText.length === 0 && node) {
         this.deleteNode(focus.id)
         return
       }
-
 
       const start = this.range.isForward() ? focus.offset : anchor.offset
       const end = this.range.isForward() ? anchor.offset : focus.offset
@@ -129,7 +130,7 @@ export default class Editor{
 
       let newText = ''
       let newOffset = 0
-      if (this.range.isCollapsed()) {
+      if (this.range.isCollapsed) {
         newText = oldText.substring(0, start -1) + oldText.substring(end)
         newOffset = start - 1
       } else {
@@ -145,8 +146,8 @@ export default class Editor{
       //   this.
       // }
 
-      this.range.updateAnchor((val) => ({...val, offset: newOffset}))
-      this.range.updateFocus((val) => ({...val, offset: newOffset}))
+      this.range.updateAnchor({offset: newOffset})
+      this.range.updateFocus({offset: newOffset})
 
       this.onChange(OperationType.DELETE_TEXT)
     } else {
@@ -174,9 +175,9 @@ export default class Editor{
   deleteNode(id: NodeId) {
 
     const node = this.nodeList.getNodeById(id)
+    debugger
 
     if (!node) return
-
 
     const prvesibling = this.nodeList.getPrvesibling(node)
     const sibling = node.sibling
@@ -216,13 +217,61 @@ export default class Editor{
   }
 
   moveCaret(backward: boolean) {
-    const move = backward ? -1 : 1
-    if (this.range?.isCollapsed()) {
-      this.range.updateAnchor((val) => ({...val, offset: val.offset + move}))
-      this.range.updateFocus((val) => ({...val, offset: val.offset + move}))
-      this.onChange(OperationType.MOVE_CARET)
-      console.log('this.range', this.range);
+
+    if (!this.range?.isCollapsed) return
+
+    const node = this.nodeList.getNodeById(this.range.focus.id) as FuNode
+    if (backward) {
+      if (this.range.focus.offset === 0) {        
+        let prvesibling = this.nodeList.getPrvesibling(node)
+
+        if (!prvesibling) return
+
+        // console.log('prvesibling', prvesibling);
+
+        // while(typeof prvesibling.data.children !== 'string') {
+        //   prvesibling = this.nodeList.lastChild(prvesibling)
+        // }
+
+        if (typeof prvesibling.data.children == 'string') {
+          this.range = new Range({
+            focus: {
+              id: prvesibling.data.id,
+              offset: prvesibling.data.children.length - 1,
+            },
+            anchor: {
+              id: prvesibling.data.id,
+              offset: prvesibling.data.children.length - 1,
+            }
+          })
+        } else {
+          alert('todo')
+        }
+      } else {
+        this.range.updateAnchor((val) => ({offset: --val.offset}))
+        this.range.updateFocus((val) => ({offset: --val.offset}))
+      }
+      
+    } else {
+      if (this.range.focus.offset === node.data.children.length) {
+        let sibling = node.sibling
+
+        if (!sibling) return
+
+        if (typeof sibling.data.children == 'string') {
+          this.transfrom({
+            node: sibling,
+            offset: 1
+          })
+        }
+
+      } else {
+        this.range.updateAnchor((val) => ({offset: ++val.offset}))
+        this.range.updateFocus((val) => ({offset: ++val.offset}))
+      }
     }
+    this.onChange(OperationType.MOVE_CARET)
+    
   }
 
 }

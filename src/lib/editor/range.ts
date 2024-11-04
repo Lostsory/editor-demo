@@ -30,9 +30,8 @@ export default class Range{
 
   /**
    * 光标是否重合
-   * @returns
    */
-  isCollapsed() : boolean{
+  get isCollapsed() {
     return this.focus.id === this.anchor.id && this.focus.offset === this.anchor.offset
   }
 
@@ -51,19 +50,13 @@ export default class Range{
     return this.focus.id === this.anchor.id
   }
 
-  updateFocus(params: Rangeslide | ((val: Rangeslide) => Rangeslide)) {
-    if (typeof params === 'function') {
-      Object.assign(this.focus, params(this.focus))
-    } else {
-      this.focus = params
-    }
+  updateFocus(params: Partial<Rangeslide> | ((val: Rangeslide) => Partial<Rangeslide>)) {
+    Object.assign(this.focus, typeof params === 'function' ? params(this.focus) : params)
   }
 
-  updateAnchor(params: Rangeslide | ((val: Rangeslide) => Rangeslide)) {
-    if (typeof params === 'function') {
-      Object.assign(this.anchor, params(this.anchor))
-    } else {
-      this.anchor = params
-    }
+  updateAnchor(params: Partial<Rangeslide> | ((val: Rangeslide) => Partial<Rangeslide>)) {
+    Object.assign(this.anchor, typeof params === 'function' ? params(this.anchor) : params)
   }
+
+  
 }
