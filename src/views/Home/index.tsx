@@ -31,20 +31,9 @@ function Home() {
       ]
     },
     {
-      type: 'View',
       id: '3',
-      children: [
-        {
-          id: '3-1',
-          type: 'Text',
-          children: 'text3',
-        }
-      ]
-    },
-    {
-      id: '4',
       type: 'Text',
-      children: 'text4',
+      children: 'text3',
     },
   ])
 
@@ -118,6 +107,8 @@ function Home() {
     if (sel?.rangeCount) {
 
       const {anchorOffset, focusOffset, anchorNode, focusNode} = sel
+
+      console.log('sel', sel);
 
       if (anchorNode && focusNode) {
 

@@ -42,7 +42,6 @@ const Base = forwardRef<HTMLElement, BaseProps>((props, ref) => {
       onMouseOut: handleMouseOut,
       'data-base': 'base'
     },
-    '\u200B',
     // String.fromCodePoint(160),
     children,
     // createElement(InlineChromiumBugfix),

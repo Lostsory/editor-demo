@@ -68,7 +68,7 @@ export class NodeList{
   }
 
   lastChild(node: FuNode) {
-    let ans = node
+    let ans = node.child as FuNode
     while(ans.sibling) {
       ans = ans.sibling
     }

@@ -175,7 +175,6 @@ export default class Editor{
   deleteNode(id: NodeId) {
 
     const node = this.nodeList.getNodeById(id)
-    debugger
 
     if (!node) return
 
@@ -213,7 +212,7 @@ export default class Editor{
     } else {
       this.range = null
     }
-    console.log('range', this.range);
+    console.warn('range', this.range);
   }
 
   moveCaret(backward: boolean) {
@@ -222,31 +221,34 @@ export default class Editor{
 
     const node = this.nodeList.getNodeById(this.range.focus.id) as FuNode
     if (backward) {
-      if (this.range.focus.offset === 0) {        
+      if (this.range.focus.offset === 0) {
         let prvesibling = this.nodeList.getPrvesibling(node)
+
+        while(!prvesibling && node.return !== this.nodeList.rootNode) {
+          prvesibling = this.nodeList.getPrvesibling(node.return as FuNode)
+        }
 
         if (!prvesibling) return
 
-        // console.log('prvesibling', prvesibling);
-
-        // while(typeof prvesibling.data.children !== 'string') {
-        //   prvesibling = this.nodeList.lastChild(prvesibling)
-        // }
-
-        if (typeof prvesibling.data.children == 'string') {
-          this.range = new Range({
-            focus: {
-              id: prvesibling.data.id,
-              offset: prvesibling.data.children.length - 1,
-            },
-            anchor: {
-              id: prvesibling.data.id,
-              offset: prvesibling.data.children.length - 1,
-            }
-          })
-        } else {
-          alert('todo')
+        while(prvesibling && typeof prvesibling.data.children !== 'string') {
+          prvesibling = this.nodeList.lastChild(prvesibling)
         }
+
+        let offset = prvesibling.data.children.length
+        if (prvesibling.sibling === node) {
+          offset--
+        }
+
+        this.range = new Range({
+          focus: {
+            id: prvesibling.data.id,
+            offset
+          },
+          anchor: {
+            id: prvesibling.data.id,
+            offset
+          }
+        })
       } else {
         this.range.updateAnchor((val) => ({offset: --val.offset}))
         this.range.updateFocus((val) => ({offset: --val.offset}))
@@ -256,15 +258,31 @@ export default class Editor{
       if (this.range.focus.offset === node.data.children.length) {
         let sibling = node.sibling
 
-        if (!sibling) return
-
-        if (typeof sibling.data.children == 'string') {
-          this.transfrom({
-            node: sibling,
-            offset: 1
-          })
+        while(!sibling && node.return !== this.nodeList.rootNode) {
+          sibling = (node.return as FuNode).sibling
         }
 
+        if (!sibling) return
+
+        while(sibling && typeof sibling.data.children !== 'string') {
+          sibling = sibling.child as FuNode
+        }
+
+        let offset = 0
+        if (node.sibling === sibling) {
+          offset = 1
+        }
+
+        this.range = new Range({
+          focus: {
+            id: sibling.data.id,
+            offset
+          },
+          anchor: {
+            id: sibling.data.id,
+            offset
+          }
+        })
       } else {
         this.range.updateAnchor((val) => ({offset: ++val.offset}))
         this.range.updateFocus((val) => ({offset: ++val.offset}))
