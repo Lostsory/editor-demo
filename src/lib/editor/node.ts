@@ -22,6 +22,14 @@ export class Node<T> {
   isLeaf() {
     return this.child === null
   }
+
+  getPrvesibling() {
+    let current = this.return?.child;
+    while (current && current.sibling !== this) {
+      current = current.sibling;
+    }
+    return current || null
+  }
 }
 
 export type FuNode = Node<EditorChild>
@@ -68,7 +76,7 @@ export class NodeList{
   }
 
   getNodeById(id: NodeId) {
-    return this.map.get(id)
+    return this.map.get(id) || null
   }
 
   lastChild(node: FuNode) {

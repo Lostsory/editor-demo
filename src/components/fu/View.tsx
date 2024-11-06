@@ -2,12 +2,14 @@ import { Children, FC, forwardRef, ReactNode } from 'react';
 import Base from './Base';
 
 const View = forwardRef<any, {
-  children: ReactNode
+  children: ReactNode,
+  isSelect: boolean
 }>(({
   children,
   ...reset
 }, ref) => {
-  return <Base {...reset} ref={ref} style={{width: '300px', border: '1px solid red', display: 'inline-block'}}>
+  const {isSelect} = reset
+  return <Base {...reset} ref={ref} style={{border: isSelect ? '1px solid red' : '1px solid transparent'}}>
     { children }
   </Base>
 })

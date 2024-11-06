@@ -3,6 +3,8 @@ import Editor, { NodeId } from '@/lib/editor';
 import hotkeys from '@/lib/editor/utils/hotkeys';
 import { EditorChild, Path } from '@/lib/editor';
 
+import { FocusedContext } from './hooks/useFocus';
+
 import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
 
@@ -24,9 +26,20 @@ function Home() {
           children: 'text1',
         },
         {
+          type: 'View',
           id: '2-2',
-          type: 'Text',
-          children: 'text2',
+          children: [
+            {
+              id: '2-2-1',
+              type: 'Text',
+              children: 'text2-2-1',
+            },
+            {
+              id: '2-2-2',
+              type: 'Text',
+              children: 'text2-2-2',
+            },
+          ]
         },
       ]
     },
@@ -181,6 +194,12 @@ function Home() {
           nodeMap.current.set(v.id, React.createRef<HTMLElement>())
         }
 
+        let isSelect = false
+
+        if (editor.current.range?.isCollapsed) {
+          isSelect = v.id === editor.current.range.focus.id
+        }
+
         if (v.type === 'Text') {
           return <Fragment key={i}>
             <Text
@@ -194,6 +213,7 @@ function Home() {
             <View
               ref={nodeMap.current.get(v.id)}
               data-fu-id={v.id}
+              isSelect={isSelect}
             >
               {v.children && renderContent(v.children as EditorChild[], path)}
             </View>
@@ -225,6 +245,9 @@ function Home() {
     event.preventDefault();
   };
   return <div className='p-[100px] bg-[#f5f6f7]'>
+    {/* <FocusedContext.Provider value={{ value, setValue }}>
+      
+    </MyContext.Provider> */}
     <div
       className='bg-white p-5 min-h-[100vh] outline-none rounded-none whitespace-pre-wrap'
       contentEditable
@@ -236,14 +259,8 @@ function Home() {
       ref={containerRef}
     >
       {renderContent(list)}
-      {/* <div
-        className='outline-none rounded-none overflow-hidden'
-        style={{minWidth: '1px', display: 'inline-block'}}
-        data-base="caret"
-      >&#8203;</div> */}
-
-      {/* <h1>我是标题</h1> */}
     </div>
+    
   </div>
 }
 
