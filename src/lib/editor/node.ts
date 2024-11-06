@@ -18,6 +18,10 @@ export class Node<T> {
     this.sibling = null
     this.return = null
   }
+
+  isLeaf() {
+    return this.child === null
+  }
 }
 
 export type FuNode = Node<EditorChild>

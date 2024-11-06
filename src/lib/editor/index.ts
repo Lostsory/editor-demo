@@ -222,38 +222,45 @@ export default class Editor{
     const node = this.nodeList.getNodeById(this.range.focus.id) as FuNode
     if (backward) {
       if (this.range.focus.offset === 0) {
-        let prvesibling = this.nodeList.getPrvesibling(node)
 
-        while(!prvesibling && node.return !== this.nodeList.rootNode) {
-          prvesibling = this.nodeList.getPrvesibling(node.return as FuNode)
-        }
 
-        if (!prvesibling) return
-
-        while(prvesibling && typeof prvesibling.data.children !== 'string') {
-          prvesibling = this.nodeList.lastChild(prvesibling)
-        }
-
-        let offset = prvesibling.data.children.length
-        if (prvesibling.sibling === node) {
-          offset--
-        }
-
-        this.range = new Range({
-          focus: {
-            id: prvesibling.data.id,
-            offset
-          },
-          anchor: {
-            id: prvesibling.data.id,
-            offset
+        if (node.isLeaf()) {
+          let prvesibling = this.nodeList.getPrvesibling(node)
+          if (prvesibling?.isLeaf()) {
+            this.setRange({
+              focus: {
+                id: prvesibling.data.id,
+                offset: prvesibling.data.children.length - 1
+              },
+              anchor: {
+                id: prvesibling.data.id,
+                offset: prvesibling.data.children.length - 1
+              }
+            })
+          } else {
+            while(!prvesibling && node.return !== this.nodeList.rootNode) {
+              prvesibling = this.nodeList.getPrvesibling(node.return as FuNode)
+            }
+            if (!prvesibling) return
+            this.setRange({
+              focus: {
+                id: prvesibling.data.id,
+                offset: 0
+              },
+              anchor: {
+                id: prvesibling.data.id,
+                offset: 0
+              }
+            })
           }
-        })
+        } else {
+          this.setRangeEnd(node)
+        }
       } else {
         this.range.updateAnchor((val) => ({offset: --val.offset}))
         this.range.updateFocus((val) => ({offset: --val.offset}))
       }
-      
+
     } else {
       if (this.range.focus.offset === node.data.children.length) {
         let sibling = node.sibling
@@ -273,7 +280,7 @@ export default class Editor{
           offset = 1
         }
 
-        this.range = new Range({
+        this.setRange({
           focus: {
             id: sibling.data.id,
             offset
@@ -289,7 +296,27 @@ export default class Editor{
       }
     }
     this.onChange(OperationType.MOVE_CARET)
-    
+
+  }
+  setRangeEnd(node: FuNode) {
+    let ans = node
+    while(ans.sibling) {
+      ans = ans.sibling
+    }
+    let offset = 0
+    if (ans.isLeaf()) {
+      offset = ans.data.children.length
+    }
+    this.setRange({
+      focus: {
+        id: ans.data.id,
+        offset
+      },
+      anchor: {
+        id: ans.data.id,
+        offset
+      }
+    })
   }
 
 }

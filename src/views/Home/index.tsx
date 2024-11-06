@@ -48,17 +48,17 @@ function Home() {
   useEffect(() => {
     editor.current.setDate(list)
 
-    document.addEventListener('selectionchange', handleSelectionchange)
+    document.addEventListener('selectionchange', updateRangeToEditor)
     return () => {
-      document.removeEventListener('selectionchange', handleSelectionchange)
+      document.removeEventListener('selectionchange', updateRangeToEditor)
     }
   }, [])
 
   useEffect(() => {
-    updateRange()
+    updateRangeToWindow()
   }, [list])
 
-  const updateRange = () => {
+  const updateRangeToWindow = () => {
     if (!editor.current.range) return
 
     const {focus, anchor} = editor.current.range
@@ -70,6 +70,12 @@ function Home() {
     let anchorNode = nodeMap.current.get(focus.id)?.current as Node
 
     if (!editorFocusNode || !editorAnchorNode) return
+
+    if (editorAnchorNode === editorFocusNode && !editorAnchorNode.isLeaf()) {
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      return
+    }
 
     if (!anchorNode || !focusNode) return
 
@@ -98,11 +104,16 @@ function Home() {
 
   const containerRef = useRef<HTMLDivElement | null>(null);
 
-  const handleSelectionchange = () => {
+  const updateRangeToEditor = () => {
 
     const sel  = window.getSelection()
 
     if (editor.current.isComposing) return
+
+    const currentRange = editor.current.range
+    if (currentRange?.isCollapsed && !editor.current.getNodeById(currentRange.focus.id)?.isLeaf()) {
+      return
+    }
 
     if (sel?.rangeCount) {
 
