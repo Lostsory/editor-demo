@@ -3,6 +3,9 @@ import Editor, { NodeId } from '@/lib/editor';
 import hotkeys from '@/lib/editor/utils/hotkeys';
 import { EditorChild, Path } from '@/lib/editor';
 
+import { nanoid } from 'nanoid';
+
+
 import { FocusedContext } from './hooks/useFocus';
 
 import View from '@/components/fu/View';
@@ -16,46 +19,82 @@ function Home() {
   const [list, setList] = useState<EditorChild[]>([
     {
       type: 'Text',
-      id: '1',
+      id: nanoid(),
       children: 'text',
     },
     {
       type: 'View',
-      id: '2',
+      id: nanoid(),
       children: [
         {
-          id: '2-1',
+          id: nanoid(),
           type: 'Text',
           children: 'text1',
         },
         {
           type: 'View',
-          id: '2-2',
+          id: nanoid(),
           children: [
             {
-              id: '2-2-1',
+              id: nanoid(),
               type: 'Text',
               children: 'text2-2-1',
             },
             {
-              id: '2-2-2',
+              id: nanoid(),
+              type: 'Image',
+              props: {
+                src: DemoPic
+              },
+              void: 1,
+              children: [{
+                id: nanoid(),
+                type: 'Text',
+                children: 'text5',
+              }]
+            },
+            {
+              id: nanoid(),
               type: 'Text',
               children: 'text2-2-2',
+            },
+            {
+              id: nanoid(),
+              type: 'Text',
+              children: 'text3',
             },
           ]
         },
       ]
     },
     {
-      id: '4',
+      id: nanoid(),
       type: 'Image',
       props: {
         src: DemoPic
       },
       void: 1,
+      children: [{
+        id: nanoid(),
+        type: 'Text',
+        children: 'text5',
+      }]
     },
     {
-      id: '5',
+      id: nanoid(),
+      type: 'Image',
+      props: {
+        src: DemoPic
+      },
+      void: 1,
+      children: [{
+        id: nanoid(),
+        type: 'Text',
+        children: 'text5',
+      }]
+    },
+    {
+      id: nanoid(),
       type: 'Text',
       children: 'text5',
     },
@@ -95,7 +134,7 @@ function Home() {
 
     if (!editorFocusNode || !editorAnchorNode) return
 
-    if (editorAnchorNode === editorFocusNode && (!editorAnchorNode.isLeaf() || editorAnchorNode.data.void === 1)) {
+    if (editor.current.range.isSingleNode() && !editorAnchorNode.isLeaf()) {
       const selection = window.getSelection();
       selection?.removeAllRanges();
       return
@@ -232,6 +271,7 @@ function Home() {
               ref={nodeMap.current.get(v.id)}
               data-fu-id={v.id}
               {...v.props}
+              isSelect={isSelect}
             >
             </Image>
           </Fragment>

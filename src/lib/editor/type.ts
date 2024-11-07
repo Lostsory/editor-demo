@@ -16,7 +16,7 @@ export interface EditorChild{
   props?: any,
   // 子元素是否不可以编辑
   void?: 1 | 0,
-  children?: EditorChild[] | string
+  children: EditorChild[] | string
 }
 
 
