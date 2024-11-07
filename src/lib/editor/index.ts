@@ -114,14 +114,13 @@ export default class Editor{
 
       const { focus, anchor } = this.range;
 
-      const node = this.nodeList.getNodeById(focus.id)
+      const node = this.nodeList.getNodeById(focus.id) as FuNode
+
+      if (!node.isLeaf()) {
+        return this.deleteNode(focus.id)
+      }
 
       const oldText = (node?.data.children || '') as string
-
-      if (oldText.length === 0 && node) {
-        this.deleteNode(focus.id)
-        return
-      }
 
       const start = this.range.isForward() ? focus.offset : anchor.offset
       const end = this.range.isForward() ? anchor.offset : focus.offset
@@ -215,12 +214,24 @@ export default class Editor{
     console.warn('range', this.range);
   }
 
+
+  moveNodeBackward(node: FuNode) {
+    let cur = node
+    let prvesibling = null
+    while(!prvesibling && cur) {
+      prvesibling = cur.getPrvesibling()
+      cur = cur.return as FuNode
+    }
+    return prvesibling
+  }
+
   moveCaret(backward: boolean) {
 
     if (!this.range?.isCollapsed) return
 
     const node = this.nodeList.getNodeById(this.range.focus.id) as FuNode
     if (backward) {
+      // debugger
       if (node.isLeaf()) {
         if (this.range.focus.offset > 0) {
           this.range.updateAnchor((val) => ({offset: --val.offset}))
@@ -232,18 +243,18 @@ export default class Editor{
             prvesibling = cur.getPrvesibling()
             cur = cur.return as FuNode
           }
-  
+
           if (!prvesibling) return
-  
+
           let offset = 0
-          if (prvesibling.isLeaf()) {
+          if (prvesibling.isLeaf() && prvesibling.data.void !== 1) {
             if (prvesibling.sibling === node) {
-              offset = prvesibling.data.children.length - 1
+              offset = (prvesibling.data.children as EditorChild[]).length - 1
             } else {
-              offset = prvesibling.data.children.length
+              offset = (prvesibling.data.children as EditorChild[]).length
             }
           }
-  
+
           this.setRange({
             focus: {
               id: prvesibling.data.id,
@@ -271,9 +282,9 @@ export default class Editor{
             sibling = cur.sibling
             cur = cur.return as FuNode
           }
-  
+
           if (!sibling) return
-  
+
           let offset = 0
           if (sibling.isLeaf()) {
             if (node.sibling === sibling) {

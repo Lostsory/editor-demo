@@ -7,6 +7,9 @@ import { FocusedContext } from './hooks/useFocus';
 
 import View from '@/components/fu/View';
 import Text from '@/components/fu/Text';
+import Image from '@/components/fu/Image';
+
+import DemoPic from '@/assets/images/demo.jpg';
 
 function Home() {
 
@@ -44,9 +47,17 @@ function Home() {
       ]
     },
     {
-      id: '3',
+      id: '4',
+      type: 'Image',
+      props: {
+        src: DemoPic
+      },
+      void: 1,
+    },
+    {
+      id: '5',
       type: 'Text',
-      children: 'text3',
+      children: 'text5',
     },
   ])
 
@@ -84,7 +95,7 @@ function Home() {
 
     if (!editorFocusNode || !editorAnchorNode) return
 
-    if (editorAnchorNode === editorFocusNode && !editorAnchorNode.isLeaf()) {
+    if (editorAnchorNode === editorFocusNode && (!editorAnchorNode.isLeaf() || editorAnchorNode.data.void === 1)) {
       const selection = window.getSelection();
       selection?.removeAllRanges();
       return
@@ -98,10 +109,6 @@ function Home() {
 
     if (editorFocusNode.data.type === 'Text') {
       focusNode = focusNode.childNodes[1] as Node
-    }
-
-    if (editorAnchorNode.data.type === 'View') {
-      anchorNode = anchorNode.childNodes[1] as Node
     }
 
     if (editorFocusNode && editorAnchorNode && focusNode && anchorNode) {
@@ -219,6 +226,16 @@ function Home() {
             </View>
           </Fragment>
         }
+        if (v.type === 'Image') {
+          return <Fragment key={i}>
+            <Image
+              ref={nodeMap.current.get(v.id)}
+              data-fu-id={v.id}
+              {...v.props}
+            >
+            </Image>
+          </Fragment>
+        }
         return null
       })}
     </>
@@ -246,7 +263,7 @@ function Home() {
   };
   return <div className='p-[100px] bg-[#f5f6f7]'>
     {/* <FocusedContext.Provider value={{ value, setValue }}>
-      
+
     </MyContext.Provider> */}
     <div
       className='bg-white p-5 min-h-[100vh] outline-none rounded-none whitespace-pre-wrap'
@@ -260,7 +277,7 @@ function Home() {
     >
       {renderContent(list)}
     </div>
-    
+
   </div>
 }
 

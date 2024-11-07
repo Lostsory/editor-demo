@@ -8,12 +8,15 @@ export interface NodeData{
 
 export type Path = (string | number)[]
 
-export type NodeType = 'root' | 'Text' | 'View'
+export type NodeType = 'root' | 'Text' | 'View' | 'Image'
 
 export interface EditorChild{
   id: string,
   type: NodeType,
-  children: EditorChild[] | string
+  props?: any,
+  // 子元素是否不可以编辑
+  void?: 1 | 0,
+  children?: EditorChild[] | string
 }
 
 

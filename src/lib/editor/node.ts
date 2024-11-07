@@ -51,7 +51,7 @@ export class NodeList{
   }
 
   get data() {
-    return this.rootNode.data.children
+    return this.rootNode.data.children as EditorChild[]
   }
 
   generateNodeTree(data: EditorChild, returnNode?: FuNode) {
