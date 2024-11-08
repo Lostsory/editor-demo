@@ -104,6 +104,7 @@ function Home() {
 
   const editor = useRef<Editor>(new Editor({
     onChange({ type, data }) {
+      console.log(data);
       setList(data)
     },
   }))
@@ -165,7 +166,7 @@ function Home() {
 
   const updateRangeToEditor = () => {
 
-    const sel  = window.getSelection()
+    const sel = window.getSelection()
 
     if (editor.current.isComposing) return
 

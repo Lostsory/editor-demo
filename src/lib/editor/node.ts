@@ -39,30 +39,53 @@ export class NodeList{
   map: Map<NodeId, FuNode>
   rootNode: FuNode
 
-  constructor(list: EditorChild[]) {
+  constructor() {
     this.map = new Map()
-    const data: EditorChild = {
+    this.rootNode = new Node({
       id: nanoid(),
       type: 'root',
-      children: list
-    }
-
-    this.rootNode = this.generateNodeTree(data)
+      children: []
+    })
+    this.map.set(this.rootNode.data.id, this.rootNode)
   }
 
   get data() {
     return this.rootNode.data.children as EditorChild[]
   }
 
-  generateNodeTree(data: EditorChild, returnNode?: FuNode) {
+  addChildren(children: EditorChild[], parent: FuNode = this.rootNode ) {
+
+    (parent.data.children as EditorChild[]).push(...children)
+    this.generateChildrenNode(children, parent)
+
+  }
+  generateChildrenNode(children: EditorChild[], parent: FuNode = this.rootNode) {
+    let previousNode = null;
+    for (const child of children) {
+      const childNode = new Node(child)
+      childNode.return = parent
+      this.map.set(child.id, childNode)
+      if (Array.isArray(child.children)) {
+        this.generateChildrenNode(child.children, childNode)
+      }
+      if (!parent.child) {
+        parent.child = childNode;
+      } else {
+        (previousNode as FuNode).sibling = childNode;
+      }
+      previousNode = childNode;
+    }
+  }
+
+  generateNodeNode(data: EditorChild, returnNode: FuNode) {
     const node = new Node(data);
-    node.return = returnNode || null;
+    node.return = returnNode;
 
     this.map.set(data.id, node)
     if (Array.isArray(data.children) && data.children.length > 0) {
       let previousNode = null;
       for (const child of data.children) {
-        const childNode = this.generateNodeTree(child, node);
+        const childNode = this.generateNodeNode(child, node);
         if (!node.child) {
           node.child = childNode;
         } else {

@@ -54,8 +54,8 @@ export default class Editor{
   onChange: (type: OperationType) => void
 
   constructor(params: EditorParams) {
-    const {data = [], onChange} = params
-    this.nodeList = new NodeList(data)
+    const { onChange } = params
+    this.nodeList = new NodeList()
     this.range = null
     this.isComposing = false
 
@@ -68,7 +68,8 @@ export default class Editor{
   }
 
   setDate(data: EditorChild[]) {
-    this.nodeList = new NodeList(data)
+    this.nodeList.addChildren(data)
+    console.log(this.nodeList);
   }
 
   setIsComposing(bool: boolean) {
@@ -120,7 +121,7 @@ export default class Editor{
         return this.deleteNode(focus.id)
       }
 
-      
+
 
       const oldText = (node?.data.children || '') as string
 
@@ -226,28 +227,30 @@ export default class Editor{
 
 
   moveNodeBackward(node: FuNode) {
-    let cur = node
-    let prvesibling = null
-    while(!prvesibling && cur) {
-      prvesibling = cur.getPrvesibling()
-      cur = cur.return as FuNode
-    }
-    return prvesibling
+    // let cur = node
+    // let prvesibling = null
+    // while(!prvesibling && cur) {
+    //   prvesibling = cur.getPrvesibling()
+    //   cur = cur.return as FuNode
+    // }
+    // return prvesibling
+    return node.getPrvesibling() || node.return
   }
 
   moveNodeForward(node: FuNode) {
-    let cur = node
-    let sibling = null
-    while(!sibling && cur) {
-      sibling = cur.sibling
-      cur = cur.return as FuNode
-    }
+    // debugger
+    // let cur = node
+    // let sibling = null
+    // while(!sibling && cur) {
+    //   sibling = cur.sibling
+    //   cur = cur.return as FuNode
+    // }
 
-    return sibling
+    return node.sibling || node.return
   }
 
 
-  
+
 
   moveCaret(backward: boolean) {
 
@@ -255,111 +258,112 @@ export default class Editor{
 
     const node = this.nodeList.getNodeById(this.range.focus.id) as FuNode
     if (backward) {
-      // debugger
-      if (node.isLeaf()) {
-        if (this.range.focus.offset > 0) {
+      if (this.range.focus.offset > 0) {
+        if (node.isLeaf()) {
           this.range.updateAnchor((val) => ({offset: --val.offset}))
           this.range.updateFocus((val) => ({offset: --val.offset}))
         } else {
-
-          const prvesibling = this.moveNodeBackward(node)
-
-          if (!prvesibling) return
-
-          let offset = 0
-          if (prvesibling.isLeaf()) {
-            if (prvesibling.sibling === node) {
-              offset = prvesibling.data.children.length - 1
-            } else {
-              offset = prvesibling.data.children.length
-            }
-          }
-
-          this.setRange({
-            focus: {
-              id: prvesibling.data.id,
-              offset
-            },
-            anchor: {
-              id: prvesibling.data.id,
-              offset
-            }
-          })
+          return alert('TODO')
         }
       } else {
-        let cur: FuNode | null = node
-        if (node.data.void === 1) {
-          cur = this.moveNodeBackward(node)
+        const prvesibling = this.moveNodeBackward(node)
+        if (!prvesibling) return
 
-          if (!cur) return
+        let offset = 0
 
-          let offset = 0
-          if (cur.isLeaf()) {
-            offset = cur.data.children.length
+        if (prvesibling.isLeaf()) {
+          offset = prvesibling.data.children.length
+          if (prvesibling.sibling === node && node.isLeaf()) {
+            offset--
           }
-          this.setRange({
-            focus: {
-              id: cur.data.id,
-              offset
-            },
-            anchor: {
-              id: cur.data.id,
-              offset
-            }
-          })
-        } else {
-          this.setRangeEnd(node)
         }
 
+        this.setRange({
+          focus: {
+            id: prvesibling.data.id,
+            offset
+          },
+          anchor: {
+            id: prvesibling.data.id,
+            offset
+          }
+        })
       }
 
     } else {
-      if (node.isLeaf()) {
-        if (this.range.focus.offset < node.data.children.length) {
+      if (this.range.focus.offset < node.data.children.length) {
+        if (node.isLeaf()) {
           this.range.updateAnchor((val) => ({offset: ++val.offset}))
           this.range.updateFocus((val) => ({offset: ++val.offset}))
         } else {
-          
-          const sibling = this.moveNodeForward(node)
-
-          if (!sibling) return
-
-          let offset = 0
-          if (sibling.isLeaf() && node.sibling === sibling) {
-            offset = 1
-          }
-          this.setRange({
-            focus: {
-              id: sibling.data.id,
-              offset
-            },
-            anchor: {
-              id: sibling.data.id,
-              offset
-            }
-          })
+          return alert('TODO')
         }
       } else {
-        let cur: FuNode | null = node
-        if (node.data.void === 1) {
-          cur = this.moveNodeForward(node)
+        const sibling = this.moveNodeForward(node)
 
-          if (!cur) return
+        if (!sibling) return
 
-          this.setRange({
-            focus: {
-              id: cur.data.id,
-              offset: 0
-            },
-            anchor: {
-              id: cur.data.id,
-              offset: 0
-            }
-          })
-        } else {
-          this.setRangeStart(node)
+        let offset = 0
+        if (sibling.isLeaf() && node.isLeaf() && node.sibling == sibling) {
+          offset = 1
         }
+        this.setRange({
+          focus: {
+            id: sibling.data.id,
+            offset
+          },
+          anchor: {
+            id: sibling.data.id,
+            offset
+          }
+        })
       }
+      // if (node.isLeaf()) {
+      //   if (this.range.focus.offset < node.data.children.length) {
+      //     this.range.updateAnchor((val) => ({offset: ++val.offset}))
+      //     this.range.updateFocus((val) => ({offset: ++val.offset}))
+      //   } else {
+
+      //     const sibling = this.moveNodeForward(node)
+
+      //     if (!sibling) return
+
+      //     let offset = 0
+      //     if (sibling.isLeaf() && node.sibling === sibling) {
+      //       offset = 1
+      //     }
+      //     this.setRange({
+      //       focus: {
+      //         id: sibling.data.id,
+      //         offset
+      //       },
+      //       anchor: {
+      //         id: sibling.data.id,
+      //         offset
+      //       }
+      //     })
+      //   }
+      // } else {
+      //   let cur: FuNode | null = node
+      //   if (node.data.void === 1) {
+      //     cur = this.moveNodeForward(node)
+
+      //     if (!cur) return
+
+      //     this.setRange({
+      //       focus: {
+      //         id: cur.data.id,
+      //         offset: 0
+      //       },
+      //       anchor: {
+      //         id: cur.data.id,
+      //         offset: 0
+      //       }
+      //     })
+      //   } else {
+      //     this.setRangeStart(node)
+      //   }
+      // }
     }
     this.onChange(OperationType.MOVE_CARET)
 
