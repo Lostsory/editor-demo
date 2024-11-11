@@ -4,14 +4,11 @@ import Base from './Base';
 const View = forwardRef<any, {
   children: ReactNode,
   isSelect: boolean
-}>(({
-  children,
-  ...reset
-}, ref) => {
-  const {isSelect} = reset
-  return <Base {...reset} ref={ref} style={{border: isSelect ? '1px solid red' : '1px solid transparent'}}>
+}>((props, ref) => {
+  const {isSelect, children, ...reset} = props
+  return <div {...reset} ref={ref} style={{border: isSelect ? '1px solid red' : '1px solid transparent', fontSize: 0}}>
     { children }
-  </Base>
+  </div>
 })
 
 export default View

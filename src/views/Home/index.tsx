@@ -102,6 +102,8 @@ function Home() {
 
   const nodeMap = useRef<Map<NodeId, React.RefObject<HTMLElement>>>(new Map())
 
+  const containerRef = useRef<HTMLDivElement | null>(null);
+
   const editor = useRef<Editor>(new Editor({
     onChange({ type, data }) {
       console.log(data);
@@ -111,6 +113,7 @@ function Home() {
 
   useEffect(() => {
     editor.current.setDate(list)
+    nodeMap.current.set(editor.current.nodeList.rootNode.data.id, containerRef)
 
     document.addEventListener('selectionchange', updateRangeToEditor)
     return () => {
@@ -162,24 +165,24 @@ function Home() {
     }
   }
 
-  const containerRef = useRef<HTMLDivElement | null>(null);
-
   const updateRangeToEditor = () => {
 
     const sel = window.getSelection()
 
     if (editor.current.isComposing) return
 
-    const currentRange = editor.current.range
-    if (currentRange?.isCollapsed && !editor.current.getNodeById(currentRange.focus.id)?.isLeaf()) {
-      return
-    }
+    
 
     if (sel?.rangeCount) {
 
       const {anchorOffset, focusOffset, anchorNode, focusNode} = sel
 
       console.log('sel', sel);
+
+      const currentRange = editor.current.range
+      if (currentRange?.isCollapsed && !editor.current.getNodeById(currentRange.focus.id)?.isLeaf()) {
+        return
+      }
 
       if (anchorNode && focusNode) {
 
@@ -267,15 +270,14 @@ function Home() {
           </Fragment>
         }
         if (v.type === 'Image') {
-          return <Fragment key={i}>
-            <Image
-              ref={nodeMap.current.get(v.id)}
-              data-fu-id={v.id}
-              {...v.props}
-              isSelect={isSelect}
-            >
-            </Image>
-          </Fragment>
+          return <Image
+            key={i}
+            ref={nodeMap.current.get(v.id)}
+            data-fu-id={v.id}
+            {...v.props}
+            isSelect={isSelect}
+          >
+          </Image>
         }
         return null
       })}
@@ -307,7 +309,7 @@ function Home() {
 
     </MyContext.Provider> */}
     <div
-      className='bg-white p-5 min-h-[100vh] outline-none rounded-none whitespace-pre-wrap'
+      className=' bg-white p-5 min-h-[100vh] outline-none rounded-none'
       contentEditable
       suppressContentEditableWarning
       onKeyDown={handleKeyDown}
@@ -315,6 +317,7 @@ function Home() {
       onCompositionEnd={handleCompositionEnd}
       onBeforeInput={handleBeforeInput}
       ref={containerRef}
+      data-fu-id={editor.current.nodeList.rootNode.data.id}
     >
       {renderContent(list)}
     </div>

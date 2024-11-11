@@ -7,10 +7,10 @@ const Text = forwardRef<any, {
   children,
   ...reset
 }, ref) => {
-  return <Base {...reset} ref={ref} tagName='span'>
+  return <span {...reset} ref={ref} style={{fontSize: '18px'}}>
     <span contentEditable={false} style={{fontSize: 0}}>&nbsp;</span>
     { children }
-  </Base>
+  </span>
 })
 
 export default Text

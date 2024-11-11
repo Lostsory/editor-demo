@@ -5,18 +5,28 @@ const View = forwardRef<any, {
   isSelect: boolean
 }>((props, ref) => {
   const {isSelect, src, ...reset} = props
-  return <img
+  return <div
     ref={ref}
-    src={src}
     {...reset}
     style={{
       border: isSelect ? '1px solid red' : '1px solid transparent',
       width: '200px',
       height: 'auto',
-      display: 'inline-block'
-    }}
-    alt=""
-  />
+      display: 'inline-block',
+      fontSize: 0
+    }
+  }>
+    <span contentEditable={false} style={{fontSize: 0}}>&nbsp;</span>
+    <img
+      src={src}
+      style={{
+        width: '200px',
+        height: 'auto',
+        display: 'inline-block',
+      }}
+      alt=""
+    />
+  </div>
 })
 
 export default View
